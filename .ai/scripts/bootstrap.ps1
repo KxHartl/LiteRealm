@@ -71,10 +71,11 @@ if (-not (Test-Path $envFile) -and (Test-Path $envExample)) {
     if ($Brain -eq "global") {
         $brainPath = Join-Path $env:USERPROFILE ".agentbrain"
         if (-not (Test-Path $brainPath)) {
-            New-Item -ItemType Directory -Path $brainPath -Force | Out-Null
-            Write-Host "  Global Brain direktorij kreiran: $brainPath" -ForegroundColor Green
+            Write-Host "  UPOZORENJE: Global Brain direktorij ne postoji na $brainPath!" -ForegroundColor Red
+            Write-Host "  LiteRealm zahtijeva AgentBrain repozitorij. Molim kloniraj ga:" -ForegroundColor Red
+            Write-Host "  git clone <URL_AgentBrain_repoa> $brainPath" -ForegroundColor Red
         } else {
-            Write-Host "  Global Brain postoji: $brainPath" -ForegroundColor Green
+            Write-Host "  Global Brain pronadjen: $brainPath" -ForegroundColor Green
         }
     }
 } else {

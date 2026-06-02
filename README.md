@@ -2,32 +2,34 @@
 
 **LiteRealm** je napredni *boilerplate* (predložak) dizajniran za brzu, robusnu i OS-neovisnu izradu akademskih radova, zadaća i softverskih projekata uz pomoć AI agenata (Gemini, Claude, Copilot). 
 
-Umjesto instaliranja teških alata poput LaTeX-a na tvoje računalo, LiteRealm koristi tehnologiju **Dev Containers** kako bi sve radilo savršeno u izoliranom Docker okruženju, neovisno jesi li na Windowsima, macOS-u ili Linuxu.
+Umjesto instaliranja teških alata poput LaTeX-a lokalno, LiteRealm nudi **Dev Containers** (opcionalno, ali preporučeno) kako bi sve radilo savršeno u izoliranom Docker okruženju. Ako ne želiš Docker, možeš raditi potpuno lokalno (potrebni su ti samo Python i LaTeX instalacija).
 
-Sve opće skripte, predlošci (seminari, radovi) i "vještine" agenata pohranjene su u odvojenom globalnom repozitoriju: **`~/.agentbrain`**. LiteRealm je namjerno "lagan" i usredotočen isključivo na tvoj specifični rad.
+Sve opće skripte, predlošci (seminari, radovi) i "vještine" agenata pohranjene su u odvojenom globalnom repozitoriju: **`AgentBrain`**. LiteRealm je namjerno "lagan" i usredotočen isključivo na tvoj specifični rad.
 
 ---
 
 ## 🚀 Brzi Start (Inicijalizacija)
 
 ### 1. Preduvjeti
-Za potpuno neometan rad i kompilaciju PDF-ova bez uništavanja tvog računala, trebaš imati instalirano:
-- [Docker Desktop](https://www.docker.com/products/docker-desktop/) (upaljen u pozadini)
-- [Visual Studio Code](https://code.visualstudio.com/)
-- Ekstenziju za VS Code: **Dev Containers** (`ms-vscode-remote.remote-containers`)
+Ovisno o tome kako želiš raditi, osiguraj jedno od navedenog:
+- **Lokalno**: Python 3.10+ i TeX Live / MiKTeX distribucija (za kompilaciju PDF-ova).
+- **Preko Dockera (Opcionalno)**: Docker Desktop i VS Code ekstenzija *Dev Containers*.
 
-### 2. Kloniranje i Pokretanje
-1. Kloniraj ovaj repozitorij pod novim imenom tvog projekta:
+### 2. Kreiranje novog projekta i AgentBrain
+Ovaj repozitorij koristi se kao predložak:
+1. Na GitHubu klikni na zeleni gumb **"Use this template"** -> **"Create a new repository"**.
+2. Nazovi repozitorij imenom svog seminara/rada i kloniraj ga na svoje računalo:
    ```bash
-   git clone <url_ovog_repoa> Moj_Novi_Seminar
-   cd Moj_Novi_Seminar
+   git clone <URL_tvog_novog_repoa>
+   cd <Ime_Tvoje_Mape>
    ```
-2. Otvori mapu u VS Code-u:
+3. **Važno:** LiteRealm oslanja se na globalni "mozak". Ako već nemaš kloniran `AgentBrain` repozitorij, kloniraj ga u svoj *home* direktorij:
    ```bash
-   code .
+   git clone <URL_tvog_AgentBrain_repoa> ~/.agentbrain
    ```
-3. U donjem desnom kutu VS Code-a iskočit će ti prozor: **"Reopen in Container"**. Klikni to! (Ili stisni `F1` i upiši `Dev Containers: Reopen in Container`).
-4. *Pričekaj par minuta* dok Docker instalira LaTeX, Python i sve potrebne ekstenzije (samo prvi put).
+   *(Ako radiš na Windowsu, to je `C:\Users\TvojeIme\.agentbrain`)*
+
+*(Opcionalno: Ako koristiš Docker, sada otvori VS Code i klikni "Reopen in Container".)*
 
 ### 3. Inicijalizacija Projekta
 Sada kada si unutar kontejnera, otvori terminal (u VS Code-u) i pokreni instalacijsku skriptu:
