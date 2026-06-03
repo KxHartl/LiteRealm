@@ -1,9 +1,9 @@
 name: "Linux_Test_Project"
 type: "seminar"              # seminar | thesis | paper | homework
 latex_format: "fsb-seminar"  # fsb-seminar | fsb-thesis | fsb-paper
-rag_mode: "none"             # none | cloud | local
+rag_mode: "local"             # none | cloud | local
 brain_mode: "global"         # none | global
 
 # AgentBrain version used during bootstrap
-agentbrain_version: "1.0.0"
-agentbrain_commit: "ae5fb04"
+agentbrain_version: "2.0.0"
+agentbrain_commit: "7300765"

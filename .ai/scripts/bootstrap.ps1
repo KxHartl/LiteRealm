@@ -75,8 +75,8 @@ if ($Name) {
         (Get-Content $stateFile -Raw) -replace '_TBD_', $Name | Set-Content $stateFile -NoNewline
     }
     if ((Test-Path $yamlFile) -and (Get-Content $yamlFile -Raw) -match '"TBD"') {
-        $yamlContent = (Get-Content $yamlFile -Raw) -replace '"TBD"', "`"$Name`""
-        $yamlContent = $yamlContent -replace 'rag_mode: "none"', "rag_mode: `"$Rag`""
+        $yamlContent = (Get-Content $yamlFile -Raw) -replace '"TBD"', ('"' + $Name + '"')
+        $yamlContent = $yamlContent -replace 'rag_mode: "none"', ('rag_mode: "' + $Rag + '"')
         $yamlContent | Set-Content $yamlFile -NoNewline
     }
 
@@ -155,8 +155,8 @@ if ($Brain -eq "global") {
                 } catch { Pop-Location }
 
                 Add-Content $yamlFile "`n# AgentBrain version used during bootstrap"
-                Add-Content $yamlFile "agentbrain_version: `"$brainVersion`""
-                Add-Content $yamlFile "agentbrain_commit: `"$brainCommit`""
+                Add-Content $yamlFile ('agentbrain_version: "' + $brainVersion + '"')
+                Add-Content $yamlFile ('agentbrain_commit: "' + $brainCommit + '"')
             }
         } else {
             Write-Host "  WARNING: AgentBrain manifest.yaml not found. Consider updating AgentBrain." -ForegroundColor Yellow
@@ -221,7 +221,7 @@ if ($uvAvailable) {
         }
         Write-Host "  Python OK ($pythonCmd)." -ForegroundColor Green
     } else {
-        Write-Host "  Python not found — skipping venv setup." -ForegroundColor Yellow
+        Write-Host "  Python not found - skipping venv setup." -ForegroundColor Yellow
     }
 }
 
@@ -246,12 +246,12 @@ $timestamp = Get-Date -Format "o"
 "$timestamp | brain=$brainVersion | rag=$Rag" | Set-Content $marker
 
 Write-Host "`n=== Bootstrap complete ===" -ForegroundColor Cyan
-Write-Host ""
-Write-Host "Next steps:" -ForegroundColor White
-Write-Host "  1. Fill in STATE.md with your assignment details"
-Write-Host "  2. Copy a LaTeX template from ~/.agentbrain/templates/ into docs/"
-Write-Host "  3. Start your AI agent and tell it what to write"
-if ($Rag -ne "none") {
-    Write-Host "  4. Place PDF sources in data/sources/ for RAG citation"
+Write-Host ''
+Write-Host 'Next steps:' -ForegroundColor White
+Write-Host '  1. Fill in STATE.md with your assignment details'
+Write-Host '  2. Copy a LaTeX template from ~/.agentbrain/templates/ into docs/'
+Write-Host '  3. Start your AI agent and tell it what to write'
+if ($Rag -ne 'none') {
+    Write-Host '  4. Place PDF sources in data/sources/ for RAG citation'
 }
-Write-Host ""
+Write-Host ''
