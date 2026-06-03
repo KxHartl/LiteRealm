@@ -57,6 +57,8 @@ The `latex_architect` agent copies the correct LaTeX template from `~/.agentbrai
 | `docs/` | LaTeX project: `main.tex`, `chapters/`, `figures/`, PDFs | Set up by `latex_architect` on first use |
 | `docs/chapters/` | Individual chapter `.tex` files | `\input{}`'d from `main.tex` |
 | `docs/figures/` | Images and diagrams | Raster or vector formats |
+| `docs/tables/` | Complex tables as separate `.tex` files | `\input{}`'d from chapters |
+| `docs/code/` | Code listings for display in the document | Use `minted` or `listings` packages |
 | `src/` | Source code, scripts, algorithms | |
 | `dist/` | Final submission versions | **Versioned subfolders**: `dist/v1.0/`, `dist/v1.1/` |
 | `data/raw/` | Raw input data | **Read-only** — enforced by pre-commit hook |

@@ -1,12 +1,37 @@
 # docs/
 
-Ovdje piši svoj rad. Stavi `.tex` fajlove, slike, i sve LaTeX resurse u ovaj direktorij.
+This directory holds your entire LaTeX project. It is set up automatically by the `latex_architect` agent when you say **"počni pisati"** for the first time.
 
-Generirani `.pdf` će također biti ovdje.
+## Structure (after setup)
 
-## Kako početi
+```
+docs/
+├── main.tex          ← root document (\input{} chapters)
+├── references.bib    ← BibTeX database
+├── chapters/         ← individual chapter .tex files
+├── figures/          ← images, diagrams, graphs
+├── tables/           ← complex tables as standalone .tex files
+└── code/             ← code listings for display in the document
+```
 
-1. Kopiraj LaTeX predložak iz `~/.agentbrain/templates/<odabrani-format>/latex/` u ovaj direktorij.
-2. Preimenuj ga prema svom radu (npr. `seminar.tex`).
-3. Piši ili zatraži od AI agenta da piše za tebe.
-4. Kompajliraj s `build-docs` skriptom iz korijena projekta.
+## How to start
+
+Tell your AI agent:
+```
+počni pisati
+```
+`latex_architect` will:
+1. Read `STATE.md` and `project.yaml` for project context.
+2. Copy the correct template from `~/.agentbrain/templates/` into this directory.
+3. Replace placeholders (project name, year, etc.).
+4. Compile the empty template to verify everything works.
+5. Hand off to `writer` for content.
+
+## Building the PDF
+
+```powershell
+.\.ai\scripts\helpers\build-docs.ps1    # Windows
+./.ai/scripts/helpers/build-docs.sh    # Linux / macOS
+```
+
+The generated PDF appears in `docs/` and is then copied to `dist/<version>/`.
