@@ -7,11 +7,13 @@ on:
       - '.ai/scripts/**'
       - '.devcontainer/**'
       - '.github/workflows/**'
+      - 'tests/**'
+      - 'VERSION'
   pull_request:
     branches: [ main ]
 
 jobs:
-  smoke:
+  bootstrap-linux:
     # Only run on the template repo itself, not on derived projects.
     if: github.event.repository.name == 'LiteRealm'
     runs-on: ubuntu-latest
@@ -28,24 +30,40 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: Run bootstrap (no brain, no rag)
-        run: |
-          chmod +x ./.ai/scripts/bootstrap.sh
-          bash ./.ai/scripts/bootstrap.sh --name "Smoke_Test" --rag none --brain none
+      - name: Bootstrap smoke test (bash)
+        run: bash tests/bootstrap-test.sh
 
-      - name: Verify bootstrap output
+      - name: Bootstrap in place + verify structure
         run: |
+          bash ./.ai/scripts/bootstrap.sh --name "Smoke_Test" --rag none --brain none
           grep -q "Smoke_Test" STATE.md
           grep -q "Smoke_Test" .ai/config/project.yaml
           test -d docs/chapters
-          test -d docs/figures
           test -d src
-          test -d dist/v1.0
           test -d data/sources
           test -f .ai/.bootstrapped
 
-      - name: Compile minimal LaTeX
+      - name: Compile minimal LaTeX (Tectonic sanity, fontspec/XeTeX)
         run: |
-          echo '\documentclass{article}\begin{document}Hello from LiteRealm.\end{document}' > docs/test.tex
-          tectonic -X compile docs/test.tex
-          test -f docs/test.pdf
+          mkdir -p docs/build
+          printf '%s\n' \
+            '\documentclass{article}' \
+            '\usepackage{fontspec}' \
+            '\begin{document}Hello from LiteRealm.\end{document}' > docs/test.tex
+          tectonic -X compile docs/test.tex --outdir docs/build
+          test -f docs/build/test.pdf
+
+  bootstrap-windows:
+    if: github.event.repository.name == 'LiteRealm'
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Bootstrap smoke test (PowerShell)
+        shell: pwsh
+        run: .\tests\bootstrap-test.ps1

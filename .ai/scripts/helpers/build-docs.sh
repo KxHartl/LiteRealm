@@ -1,17 +1,20 @@
 #!/usr/bin/env bash
 # Build Documentation Script
-# Usage: ./.ai/scripts/helpers/build-docs.sh [--clean] [--force] [--engine latexmk]
+# Usage: ./.ai/scripts/helpers/build-docs.sh [--clean] [--force] [--engine tectonic|latexmk] [--version v1.0]
+# Output PDFs always land in a versioned subfolder dist/<version>/ (never dist/ root).
 
 clean=false
 force=false
 engine="auto"
+version=""
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    --clean)  clean=true; shift ;;
-    --force)  force=true; shift ;;
-    --engine) engine="$2"; shift 2 ;;
-    *)        echo "Unknown option: $1"; exit 1 ;;
+    --clean)   clean=true; shift ;;
+    --force)   force=true; shift ;;
+    --engine)  engine="$2"; shift 2 ;;
+    --version) version="$2"; shift 2 ;;
+    *)         echo "Unknown option: $1"; exit 1 ;;
   esac
 done
 
@@ -20,7 +23,20 @@ cd "$root_dir"
 
 echo "--- Building Documentation ---"
 
-dist_dir="${root_dir}/dist"
+# Read project.yaml: max_pages (0 = no check) and the dist version.
+max_pages=0
+yaml_path="${root_dir}/.ai/config/project.yaml"
+if [[ -f "$yaml_path" ]]; then
+  max_pages=$(grep 'max_pages:' "$yaml_path" | grep -o '[0-9]\+' | head -1)
+  max_pages="${max_pages:-0}"
+  if [[ -z "$version" ]]; then
+    version=$(grep 'dist_version:' "$yaml_path" | sed -E 's/.*dist_version:[[:space:]]*"?([^"#]+)"?.*/\1/' | tr -d '[:space:]')
+  fi
+fi
+version="${version:-dev}"
+
+# Versioned dist subfolder — never the dist/ root (see AGENTS.md).
+dist_dir="${root_dir}/dist/${version}"
 mkdir -p "$dist_dir"
 
 # Detect engine
@@ -35,15 +51,7 @@ if [[ "$engine" == "auto" ]]; then
   fi
 fi
 
-echo "Engine: $engine"
-
-# Read max_pages from project.yaml (0 = no check)
-max_pages=0
-yaml_path="${root_dir}/.ai/config/project.yaml"
-if [[ -f "$yaml_path" ]]; then
-  max_pages=$(grep 'max_pages:' "$yaml_path" | grep -o '[0-9]\+' | head -1)
-  max_pages="${max_pages:-0}"
-fi
+echo "Engine: $engine | Version: $version"
 
 # Find .tex files
 tex_files=$(find docs -maxdepth 2 -name "*.tex" 2>/dev/null)
@@ -66,7 +74,8 @@ echo "$tex_files" | while read -r file; do
   mkdir -p "$out_dir"
 
   if [[ "$engine" == "tectonic" ]]; then
-    tectonic -X compile "$file" --outdir "$out_dir"
+    # --keep-logs so the page-count check below works under Tectonic too.
+    tectonic -X compile "$file" --outdir "$out_dir" --keep-logs
   else
     latexmk -pdf -interaction=nonstopmode -shell-escape "-outdir=$out_dir" "$file"
   fi
@@ -75,7 +84,7 @@ echo "$tex_files" | while read -r file; do
     pdf_name="$(basename "$file" .tex).pdf"
     if [[ -f "${out_dir}/${pdf_name}" ]]; then
       cp "${out_dir}/${pdf_name}" "${dist_dir}/"
-      echo "Done: $pdf_name -> dist/"
+      echo "Done: $pdf_name -> dist/${version}/"
     fi
 
     # Provjera broja stranica (iz .log fajla)

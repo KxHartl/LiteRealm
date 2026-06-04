@@ -50,3 +50,6 @@ TODO.md
 
 # Test / sandbox directories
 TestRealm/
+
+# Claude Code git worktrees — runtime, never tracked
+.claude/worktrees/

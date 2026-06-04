@@ -21,21 +21,10 @@ jobs:
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Compile LaTeX documents
-        run: |
-          mkdir -p dist
-          for f in docs/*.tex; do
-            [ -f "$f" ] || continue
-            echo "Building $(basename "$f")..."
-            tectonic -X compile "$f"
-            pdf="$(dirname "$f")/$(basename "$f" .tex).pdf"
-            if [ -f "$pdf" ]; then
-              cp "$pdf" dist/
-              echo "Done: $(basename "$pdf") -> dist/"
-            fi
-          done
+        run: bash ./.ai/scripts/helpers/build-docs.sh --version ci
 
       - name: Upload PDF
         uses: actions/upload-artifact@v4
         with:
           name: Compiled_Document
-          path: dist/*.pdf
+          path: dist/**/*.pdf

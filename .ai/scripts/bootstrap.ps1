@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
     Bootstrap a new LiteRealm project.
 .EXAMPLE
@@ -21,6 +21,7 @@ $root = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
 if (-not $root) { $root = Get-Location }
 
 $marker = Join-Path $root ".ai\.bootstrapped"
+$brainVersion = "unknown"   # set once AgentBrain is located; used in the marker
 
 # --- Auto mode: read name from project.yaml ---
 if ($Auto -and -not $Name) {
@@ -65,7 +66,7 @@ Write-Host "Brain:   $Brain"
 Write-Host ""
 
 # --- 1. Set project name in config files ---
-Write-Host "[1/6] Setting project name..." -ForegroundColor Yellow
+Write-Host "[1/7] Setting project name..." -ForegroundColor Yellow
 
 if ($Name) {
     $stateFile = Join-Path $root "STATE.md"
@@ -86,7 +87,7 @@ if ($Name) {
 }
 
 # --- 2. Create directory structure ---
-Write-Host "[2/6] Creating directories..." -ForegroundColor Yellow
+Write-Host "[2/7] Creating directories..." -ForegroundColor Yellow
 
 $dirs = @("docs", "src", "dist", "data\raw", "data\processed", "data\sources")
 foreach ($d in $dirs) {
@@ -113,20 +114,22 @@ Log svih preuzetih izvora. Svaki unos popunjava `data_fetcher`.
 Write-Host "  Directories created." -ForegroundColor Green
 
 # --- 3. Setup .env ---
-Write-Host "[3/6] Configuring .env..." -ForegroundColor Yellow
+Write-Host "[3/7] Configuring .env..." -ForegroundColor Yellow
 
 $envFile = Join-Path $root ".env"
 $envExample = Join-Path $root ".env.example"
 
-if (-not (Test-Path $envFile) -and (Test-Path $envExample)) {
+if (Test-Path $envFile) {
+    Write-Host "  .env already exists, skipping." -ForegroundColor Gray
+} elseif (Test-Path $envExample) {
     Copy-Item $envExample $envFile
     Write-Host "  .env created from .env.example." -ForegroundColor Green
 } else {
-    Write-Host "  .env already exists, skipping." -ForegroundColor Gray
+    Write-Host "  No .env.example found, skipping." -ForegroundColor Gray
 }
 
-# --- 4. AgentBrain setup ---
-Write-Host "[4/6] Checking AgentBrain..." -ForegroundColor Yellow
+# --- 4. AgentBrain setup + version contract ---
+Write-Host "[4/7] Checking AgentBrain..." -ForegroundColor Yellow
 
 $brainPath = if ($env:AGENTBRAIN_PATH) { $env:AGENTBRAIN_PATH } else { Join-Path $env:USERPROFILE ".agentbrain" }
 
@@ -148,39 +151,51 @@ if ($Brain -eq "global") {
         }
     } else {
         Write-Host "  AgentBrain found: $brainPath" -ForegroundColor Green
+    }
 
-        # Check version contract
-        $manifest = Join-Path $brainPath "manifest.yaml"
-        if (Test-Path $manifest) {
-            $manifestContent = Get-Content $manifest -Raw
-            $brainVersion = "unknown"
-            if ($manifestContent -match 'version:\s*"([^"]+)"') {
-                $brainVersion = $Matches[1]
+    # Shared manifest handling — runs whether AgentBrain was just cloned or already present.
+    $manifest = Join-Path $brainPath "manifest.yaml"
+    if (Test-Path $manifest) {
+        $manifestContent = Get-Content $manifest -Raw
+        if ($manifestContent -match 'version:\s*"([^"]+)"') { $brainVersion = $Matches[1] }
+        Write-Host "  AgentBrain version: $brainVersion" -ForegroundColor Green
+
+        # Version contract: warn if this LiteRealm is older than the brain requires.
+        $versionFile = Join-Path $root "VERSION"
+        $liteVersion = if (Test-Path $versionFile) { (Get-Content $versionFile -Raw).Trim() } else { "unknown" }
+        if ($manifestContent -match 'min_literealm_version:\s*"([^"]+)"') {
+            $minLite = $Matches[1]
+            try {
+                if ([version]$liteVersion -lt [version]$minLite) {
+                    Write-Host "  WARNING: LiteRealm $liteVersion is older than AgentBrain requires (min $minLite)." -ForegroundColor Red
+                    Write-Host "           Update this project from the latest LiteRealm template." -ForegroundColor Red
+                }
+            } catch {
+                Write-Host "  NOTE: cannot compare versions (LiteRealm '$liteVersion' vs min '$minLite')." -ForegroundColor Gray
             }
-            Write-Host "  AgentBrain version: $brainVersion" -ForegroundColor Green
-
-            # Stamp version into project.yaml
-            $yamlFile = Join-Path $root ".ai\config\project.yaml"
-            if ((Test-Path $yamlFile) -and -not ((Get-Content $yamlFile -Raw) -match 'agentbrain_version')) {
-                $brainCommit = "unknown"
-                try {
-                    Push-Location $brainPath
-                    $brainCommit = git rev-parse --short HEAD 2>$null
-                    Pop-Location
-                } catch { Pop-Location }
-
-                Add-Content $yamlFile "`n# AgentBrain version used during bootstrap"
-                Add-Content $yamlFile ('agentbrain_version: "' + $brainVersion + '"')
-                Add-Content $yamlFile ('agentbrain_commit: "' + $brainCommit + '"')
-            }
-        } else {
-            Write-Host "  WARNING: AgentBrain manifest.yaml not found. Consider updating AgentBrain." -ForegroundColor Yellow
         }
+
+        # Stamp brain version + commit into project.yaml (once).
+        $yamlFile = Join-Path $root ".ai\config\project.yaml"
+        if ((Test-Path $yamlFile) -and -not ((Get-Content $yamlFile -Raw) -match 'agentbrain_version')) {
+            $brainCommit = "unknown"
+            try {
+                Push-Location $brainPath
+                $brainCommit = git rev-parse --short HEAD 2>$null
+                Pop-Location
+            } catch { Pop-Location }
+
+            Add-Content $yamlFile "`n# AgentBrain version used during bootstrap"
+            Add-Content $yamlFile ('agentbrain_version: "' + $brainVersion + '"')
+            Add-Content $yamlFile ('agentbrain_commit: "' + $brainCommit + '"')
+        }
+    } else {
+        Write-Host "  WARNING: AgentBrain manifest.yaml not found. Consider updating AgentBrain." -ForegroundColor Yellow
     }
 }
 
 # --- 5. Python environment ---
-Write-Host "[5/6] Python environment..." -ForegroundColor Yellow
+Write-Host "[5/7] Python environment..." -ForegroundColor Yellow
 
 $uvAvailable = Get-Command uv -ErrorAction SilentlyContinue
 
@@ -246,8 +261,16 @@ if ($uvAvailable) {
     }
 }
 
-# --- 6. Install git hooks ---
-Write-Host "[6/7] Installing git hooks..." -ForegroundColor Yellow
+# --- 6. Git setup: pre-commit hook + Git LFS ---
+Write-Host "[6/7] Git setup (hooks + LFS)..." -ForegroundColor Yellow
+
+$insideRepo = $false
+try {
+    Push-Location $root
+    git rev-parse --is-inside-work-tree *> $null
+    $insideRepo = ($LASTEXITCODE -eq 0)
+    Pop-Location
+} catch { try { Pop-Location } catch {} }
 
 $hookDir = Join-Path $root ".git\hooks"
 $preCommitHook = Join-Path $hookDir "pre-commit"
@@ -261,23 +284,42 @@ if git diff --cached --name-only | grep -q "^data/raw/"; then
 fi
 '@
 
-if (-not (Test-Path $preCommitHook)) {
-    $hookContent | Set-Content $preCommitHook -Encoding utf8
-    Write-Host "  pre-commit hook installed (data/raw/ protection)." -ForegroundColor Green
+if (Test-Path $hookDir) {
+    if (-not (Test-Path $preCommitHook)) {
+        $hookContent | Set-Content $preCommitHook -Encoding utf8
+        Write-Host "  pre-commit hook installed (data/raw/ protection)." -ForegroundColor Green
+    } else {
+        Write-Host "  pre-commit hook already exists, skipping." -ForegroundColor Gray
+    }
 } else {
-    Write-Host "  pre-commit hook already exists, skipping." -ForegroundColor Gray
+    Write-Host "  Not a git repo (no .git/hooks) — skipping pre-commit hook." -ForegroundColor Gray
+}
+
+git lfs version *> $null
+if ($LASTEXITCODE -eq 0) {
+    if ($insideRepo) {
+        Push-Location $root
+        git lfs install --local *> $null
+        Pop-Location
+        Write-Host "  Git LFS installed (data/sources/ large files tracked)." -ForegroundColor Green
+    } else {
+        Write-Host "  Git LFS present but not inside a repo — skipping install." -ForegroundColor Gray
+    }
+} else {
+    Write-Host "  WARNING: git-lfs not found. Install it (https://git-lfs.com) so PDFs in" -ForegroundColor Yellow
+    Write-Host "           data/sources/ are tracked via LFS, not committed as large blobs." -ForegroundColor Yellow
 }
 
 # --- 7. Check LaTeX (Tectonic) ---
-Write-Host "[6/6] Checking LaTeX compiler..." -ForegroundColor Yellow
+Write-Host "[7/7] Checking LaTeX compiler..." -ForegroundColor Yellow
 
 $tectonic = Get-Command tectonic -ErrorAction SilentlyContinue
 $latexmk = Get-Command latexmk -ErrorAction SilentlyContinue
 
 if ($tectonic) {
-    Write-Host "  tectonic found." -ForegroundColor Green
+    Write-Host "  tectonic found (recommended engine)." -ForegroundColor Green
 } elseif ($latexmk) {
-    Write-Host "  latexmk found (legacy). Consider installing Tectonic for faster builds." -ForegroundColor Yellow
+    Write-Host "  latexmk found (legacy fallback). Tectonic is the canonical engine." -ForegroundColor Yellow
 } else {
     Write-Host "  No LaTeX compiler found." -ForegroundColor Red
     Write-Host "  Install Tectonic: https://tectonic-typesetting.github.io/en-US/install.html"
@@ -291,7 +333,7 @@ $timestamp = Get-Date -Format "o"
 Write-Host "`n=== Bootstrap complete ===" -ForegroundColor Cyan
 Write-Host ''
 Write-Host 'Next steps:' -ForegroundColor White
-Write-Host '  1. Fill in STATE.md with your assignment details'
+Write-Host '  1. Fill in STATE.md and .ai/config/project.yaml with your assignment details'
 Write-Host '  2. Tell your AI agent: "počni pisati" — latex_architect sets up docs/ automatically'
 Write-Host '  3. Add literature PDFs to data/sources/ (tracked via Git LFS)'
 if ($Rag -ne 'none') {

@@ -1,11 +1,13 @@
 # Build Documentation Script
-# Usage: .\.ai\scripts\helpers\build-docs.ps1 [-Clean] [-Force] [-Engine latexmk]
+# Usage: .\.ai\scripts\helpers\build-docs.ps1 [-Clean] [-Force] [-Engine tectonic|latexmk] [-Version v1.0]
+# Output PDFs always land in a versioned subfolder dist/<version>/ (never dist/ root).
 
 param (
     [switch]$Clean,
     [switch]$Force,
     [ValidateSet("auto", "tectonic", "latexmk")]
-    [string]$Engine = "auto"
+    [string]$Engine = "auto",
+    [string]$Version
 )
 
 $rootDir = git rev-parse --show-toplevel 2>$null
@@ -14,8 +16,19 @@ Set-Location $rootDir
 
 Write-Host "--- Building Documentation ---" -ForegroundColor Cyan
 
-$distDir = Join-Path $rootDir "dist"
-if (-not (Test-Path $distDir)) { New-Item -ItemType Directory -Path $distDir | Out-Null }
+# Read project.yaml: max_pages (0 = no check) and the dist version.
+$maxPages = 0
+$yamlPath = Join-Path $rootDir ".ai\config\project.yaml"
+$yamlContent = if (Test-Path $yamlPath) { Get-Content $yamlPath -Raw } else { "" }
+if ($yamlContent -match 'max_pages:\s*(\d+)') { $maxPages = [int]$Matches[1] }
+if (-not $Version) {
+    $Version = "dev"
+    if ($yamlContent -match 'dist_version:\s*"?([^"\r\n#]+)"?') { $Version = $Matches[1].Trim() }
+}
+
+# Versioned dist subfolder — never the dist/ root (see AGENTS.md).
+$distDir = Join-Path $rootDir "dist\$Version"
+if (-not (Test-Path $distDir)) { New-Item -ItemType Directory -Path $distDir -Force | Out-Null }
 
 # Detect engine
 if ($Engine -eq "auto") {
@@ -29,17 +42,7 @@ if ($Engine -eq "auto") {
     }
 }
 
-Write-Host "Engine: $Engine" -ForegroundColor Gray
-
-# Read max_pages from project.yaml (0 = no check)
-$maxPages = 0
-$yamlPath = Join-Path $rootDir ".ai\config\project.yaml"
-if (Test-Path $yamlPath) {
-    $yamlContent = Get-Content $yamlPath -Raw
-    if ($yamlContent -match 'max_pages:\s*(\d+)') {
-        $maxPages = [int]$Matches[1]
-    }
-}
+Write-Host "Engine: $Engine | Version: $Version" -ForegroundColor Gray
 
 # Build LaTeX documents
 $texFiles = Get-ChildItem -Path "docs" -Filter "*.tex" -Recurse -Depth 1 -ErrorAction SilentlyContinue
@@ -62,7 +65,8 @@ foreach ($file in $texFiles) {
     if (-not (Test-Path $outDir)) { New-Item -ItemType Directory -Path $outDir | Out-Null }
 
     if ($Engine -eq "tectonic") {
-        tectonic -X compile $file.FullName --outdir $outDir
+        # --keep-logs so the page-count check below works under Tectonic too.
+        tectonic -X compile $file.FullName --outdir $outDir --keep-logs
     } else {
         latexmk -pdf -interaction=nonstopmode -shell-escape "-outdir=$outDir" $file.FullName
     }
@@ -72,10 +76,10 @@ foreach ($file in $texFiles) {
         $generatedPdf = Join-Path $outDir $pdfName
         if (Test-Path $generatedPdf) {
             Copy-Item $generatedPdf -Destination (Join-Path $distDir $pdfName) -Force
-            Write-Host "Done: $pdfName -> dist/" -ForegroundColor Green
+            Write-Host "Done: $pdfName -> dist/$Version/" -ForegroundColor Green
         }
 
-        # Provjera broja stranica (iz .log fajla — latexmk i pdflatex pišu "Output written on ...")
+        # Provjera broja stranica (iz .log fajla — "Output written on ...")
         if ($maxPages -gt 0) {
             $logFile = Join-Path $outDir ($file.BaseName + ".log")
             if (Test-Path $logFile) {

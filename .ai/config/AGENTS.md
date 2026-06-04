@@ -44,10 +44,11 @@ Specijalizirani agenti su definirani u `~/.agentbrain/agents/`. Svaki agent ima 
 
 ## dist/ — Versioning
 
-- Konačne verzije uvijek idu u podfoldere: `dist/v1.0/`, `dist/v1.1/`, `dist/final/`.
-- Nikad ne stavljaj direktno u `dist/` root.
-- PDF-ovi su gitignorirani — commiti samo `.gitkeep` kad kreiraš novu verziju.
-- Primjer toka: `build-docs.ps1` generira PDF → ručno (ili agent) kopira u `dist/v1.0/naziv.pdf`.
+- Build skripta uvijek piše u **versionirani podfolder** `dist/<verzija>/`, nikad u `dist/` root.
+- Default verzija je `dev` (radni buildovi). Za predaju cuti release s eksplicitnom verzijom:
+  `build-docs.ps1 -Version v1.0` (ili `--version v1.0`), ili postavi `dist_version` u `project.yaml`.
+- PDF-ovi su gitignorirani (`dist/**/*.pdf`) — commitaj samo `.gitkeep` kad kreiraš novu verziju.
+- Primjer toka: `build-docs.ps1 -Version v1.0` → `dist/v1.0/main.pdf`.
 
 ## data/raw/ — Read-Only Pravilo
 
