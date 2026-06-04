@@ -3,3 +3,18 @@ type: "seminar"              # seminar | thesis | paper | homework
 latex_format: "fsb-seminar"  # fsb-seminar | fsb-thesis | fsb-paper
 rag_mode: "none"             # none | cloud | local
 brain_mode: "global"         # none | global
+
+# --- Metadata za naslovnicu (latex_architect popunjava main.tex) ---
+author_name: ""              # Ime i prezime studenta
+course_name: ""              # Naziv kolegija (UPPERCASE u dokumentu)
+seminar_title: ""            # Puni naslov seminara
+seminar_title_short: ""      # Skraćeni naslov za header (max ~50 znakova)
+professor_title: ""          # Titula (npr. "Prof. dr. sc.")
+professor_name: ""           # Ime i prezime profesora
+
+# --- Build & page limit ---
+max_pages: 12                # build skripta upozorava ako PDF premašuje N stranica
+
+# --- Opcijski popisi (latex_architect uključuje ako je true) ---
+include_lof: false           # \listoffigures
+include_lot: false           # \listoftables

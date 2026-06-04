@@ -1,8 +1,9 @@
 # Build Documentation Script
-# Usage: .\.ai\scripts\helpers\build-docs.ps1 [-Clean] [-Engine latexmk]
+# Usage: .\.ai\scripts\helpers\build-docs.ps1 [-Clean] [-Force] [-Engine latexmk]
 
 param (
     [switch]$Clean,
+    [switch]$Force,
     [ValidateSet("auto", "tectonic", "latexmk")]
     [string]$Engine = "auto"
 )
@@ -30,6 +31,16 @@ if ($Engine -eq "auto") {
 
 Write-Host "Engine: $Engine" -ForegroundColor Gray
 
+# Read max_pages from project.yaml (0 = no check)
+$maxPages = 0
+$yamlPath = Join-Path $rootDir ".ai\config\project.yaml"
+if (Test-Path $yamlPath) {
+    $yamlContent = Get-Content $yamlPath -Raw
+    if ($yamlContent -match 'max_pages:\s*(\d+)') {
+        $maxPages = [int]$Matches[1]
+    }
+}
+
 # Build LaTeX documents
 $texFiles = Get-ChildItem -Path "docs" -Filter "*.tex" -Recurse -Depth 1 -ErrorAction SilentlyContinue
 
@@ -41,6 +52,13 @@ if (-not $texFiles) {
 foreach ($file in $texFiles) {
     Write-Host "Building $($file.Name)..." -ForegroundColor Yellow
     $outDir = Join-Path $file.DirectoryName "build"
+
+    # -Force: briše build/ da prisili potpunu rekompilaciju (rješava latexmk stale cache)
+    if ($Force -and (Test-Path $outDir)) {
+        Remove-Item -Recurse -Force $outDir
+        Write-Host "  Force clean: build/ obrisan." -ForegroundColor Gray
+    }
+
     if (-not (Test-Path $outDir)) { New-Item -ItemType Directory -Path $outDir | Out-Null }
 
     if ($Engine -eq "tectonic") {
@@ -55,6 +73,22 @@ foreach ($file in $texFiles) {
         if (Test-Path $generatedPdf) {
             Copy-Item $generatedPdf -Destination (Join-Path $distDir $pdfName) -Force
             Write-Host "Done: $pdfName -> dist/" -ForegroundColor Green
+        }
+
+        # Provjera broja stranica (iz .log fajla — latexmk i pdflatex pišu "Output written on ...")
+        if ($maxPages -gt 0) {
+            $logFile = Join-Path $outDir ($file.BaseName + ".log")
+            if (Test-Path $logFile) {
+                $logContent = Get-Content $logFile -Raw
+                if ($logContent -match 'Output written on[^(]+\((\d+) page') {
+                    $pageCount = [int]$Matches[1]
+                    if ($pageCount -gt $maxPages) {
+                        Write-Host "  UPOZORENJE: $pageCount stranica (limit: $maxPages)!" -ForegroundColor Red
+                    } else {
+                        Write-Host "  Stranice: $pageCount / $maxPages" -ForegroundColor Green
+                    }
+                }
+            }
         }
     } else {
         Write-Host "FAILED: $($file.Name)" -ForegroundColor Red

@@ -1,13 +1,15 @@
 #!/usr/bin/env bash
 # Build Documentation Script
-# Usage: ./.ai/scripts/helpers/build-docs.sh [--clean] [--engine latexmk]
+# Usage: ./.ai/scripts/helpers/build-docs.sh [--clean] [--force] [--engine latexmk]
 
 clean=false
+force=false
 engine="auto"
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --clean)  clean=true; shift ;;
+    --force)  force=true; shift ;;
     --engine) engine="$2"; shift 2 ;;
     *)        echo "Unknown option: $1"; exit 1 ;;
   esac
@@ -35,6 +37,14 @@ fi
 
 echo "Engine: $engine"
 
+# Read max_pages from project.yaml (0 = no check)
+max_pages=0
+yaml_path="${root_dir}/.ai/config/project.yaml"
+if [[ -f "$yaml_path" ]]; then
+  max_pages=$(grep 'max_pages:' "$yaml_path" | grep -o '[0-9]\+' | head -1)
+  max_pages="${max_pages:-0}"
+fi
+
 # Find .tex files
 tex_files=$(find docs -maxdepth 2 -name "*.tex" 2>/dev/null)
 
@@ -46,6 +56,13 @@ fi
 echo "$tex_files" | while read -r file; do
   echo "Building $(basename "$file")..."
   out_dir="$(dirname "$file")/build"
+
+  # --force: briše build/ da prisili potpunu rekompilaciju (rješava latexmk stale cache)
+  if [[ "$force" == true && -d "$out_dir" ]]; then
+    rm -rf "$out_dir"
+    echo "  Force clean: build/ obrisan."
+  fi
+
   mkdir -p "$out_dir"
 
   if [[ "$engine" == "tectonic" ]]; then
@@ -59,6 +76,21 @@ echo "$tex_files" | while read -r file; do
     if [[ -f "${out_dir}/${pdf_name}" ]]; then
       cp "${out_dir}/${pdf_name}" "${dist_dir}/"
       echo "Done: $pdf_name -> dist/"
+    fi
+
+    # Provjera broja stranica (iz .log fajla)
+    if [[ "$max_pages" -gt 0 ]]; then
+      log_file="${out_dir}/$(basename "$file" .tex).log"
+      if [[ -f "$log_file" ]]; then
+        page_count=$(grep -o 'Output written on[^(]*([ ]*[0-9]* page' "$log_file" | grep -o '[0-9]*' | tail -1)
+        if [[ -n "$page_count" ]]; then
+          if [[ "$page_count" -gt "$max_pages" ]]; then
+            echo "  UPOZORENJE: ${page_count} stranica (limit: ${max_pages})!"
+          else
+            echo "  Stranice: ${page_count} / ${max_pages}"
+          fi
+        fi
+      fi
     fi
   else
     echo "FAILED: $(basename "$file")"
