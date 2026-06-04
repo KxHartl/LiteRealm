@@ -53,8 +53,9 @@ fi
 
 echo "Engine: $engine | Version: $version"
 
-# Find .tex files
-tex_files=$(find docs -maxdepth 2 -name "*.tex" 2>/dev/null)
+# Find .tex files — only top-level docs/*.tex (the main document).
+# chapters/*.tex are \input fragments, not standalone, so they must not be compiled.
+tex_files=$(find docs -maxdepth 1 -name "*.tex" 2>/dev/null)
 
 if [[ -z "$tex_files" ]]; then
   echo "No .tex files found in docs/."

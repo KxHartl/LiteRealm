@@ -68,22 +68,30 @@ Write-Host ""
 # --- 1. Set project name in config files ---
 Write-Host "[1/7] Setting project name..." -ForegroundColor Yellow
 
+$yamlFile = Join-Path $root ".ai\config\project.yaml"
+
 if ($Name) {
     $stateFile = Join-Path $root "STATE.md"
-    $yamlFile = Join-Path $root ".ai\config\project.yaml"
 
     if ((Test-Path $stateFile) -and (Get-Content $stateFile -Raw) -match '_TBD_') {
         (Get-Content $stateFile -Raw) -replace '_TBD_', $Name | Set-Content $stateFile -NoNewline
     }
     if ((Test-Path $yamlFile) -and (Get-Content $yamlFile -Raw) -match '"TBD"') {
-        $yamlContent = (Get-Content $yamlFile -Raw) -replace '"TBD"', ('"' + $Name + '"')
-        $yamlContent = $yamlContent -replace 'rag_mode: "none"', ('rag_mode: "' + $Rag + '"')
-        $yamlContent | Set-Content $yamlFile -NoNewline
+        (Get-Content $yamlFile -Raw) -replace '"TBD"', ('"' + $Name + '"') | Set-Content $yamlFile -NoNewline
     }
 
     Write-Host "  Name '$Name' written to config files." -ForegroundColor Green
 } else {
     Write-Host "  Skipped (no name provided)." -ForegroundColor Gray
+}
+
+# RAG mode — sync independently of the name/TBD state (parity with bootstrap.sh,
+# so re-running on an already-named project still records the chosen RAG mode).
+if (Test-Path $yamlFile) {
+    $yc = Get-Content $yamlFile -Raw
+    if ($yc -match 'rag_mode:\s*"none"') {
+        ($yc -replace 'rag_mode:\s*"none"', ('rag_mode: "' + $Rag + '"')) | Set-Content $yamlFile -NoNewline
+    }
 }
 
 # --- 2. Create directory structure ---
@@ -286,7 +294,10 @@ fi
 
 if (Test-Path $hookDir) {
     if (-not (Test-Path $preCommitHook)) {
-        $hookContent | Set-Content $preCommitHook -Encoding utf8
+        # Write LF + NO BOM: Windows PowerShell 5.1 's "-Encoding utf8" prepends a BOM,
+        # which breaks the shebang ("cannot spawn .git/hooks/pre-commit").
+        $hookText = $hookContent -replace "`r`n", "`n"
+        [System.IO.File]::WriteAllText($preCommitHook, $hookText, (New-Object System.Text.UTF8Encoding $false))
         Write-Host "  pre-commit hook installed (data/raw/ protection)." -ForegroundColor Green
     } else {
         Write-Host "  pre-commit hook already exists, skipping." -ForegroundColor Gray

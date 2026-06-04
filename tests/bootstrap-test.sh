@@ -34,6 +34,11 @@ assert "pre-commit hook installed"  "[[ -f '$tmp/.git/hooks/pre-commit' ]]"
 assert "name written to yaml"       "grep -q 'Boot_Test' '$tmp/.ai/config/project.yaml'"
 assert "marker has brain=unknown"   "grep -q 'brain=unknown' '$tmp/.ai/.bootstrapped'"
 
+# A normal commit must SUCCEED (proves the hook spawns and runs cleanly — catches BOM/CRLF).
+mkdir -p "$tmp/src"; echo ok > "$tmp/src/ok.txt"
+( cd "$tmp" && git add src/ok.txt >/dev/null 2>&1 && git commit -q -m ok >/dev/null 2>&1 ); rc_ok=$?
+assert "normal commit succeeds (hook spawns)" "[[ $rc_ok -eq 0 ]]"
+
 # pre-commit hook must block a data/raw/ change
 echo data > "$tmp/data/raw/x.txt"
 ( cd "$tmp" && git add -f data/raw/x.txt >/dev/null 2>&1 && git commit -q -m x >/dev/null 2>&1 )

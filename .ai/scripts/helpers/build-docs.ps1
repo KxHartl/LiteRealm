@@ -44,8 +44,9 @@ if ($Engine -eq "auto") {
 
 Write-Host "Engine: $Engine | Version: $Version" -ForegroundColor Gray
 
-# Build LaTeX documents
-$texFiles = Get-ChildItem -Path "docs" -Filter "*.tex" -Recurse -Depth 1 -ErrorAction SilentlyContinue
+# Build LaTeX documents — only top-level docs/*.tex (the main document).
+# chapters/*.tex are \input fragments, not standalone, so they must not be compiled.
+$texFiles = Get-ChildItem -Path "docs" -Filter "*.tex" -File -ErrorAction SilentlyContinue
 
 if (-not $texFiles) {
     Write-Host "No .tex files found in docs/." -ForegroundColor Yellow

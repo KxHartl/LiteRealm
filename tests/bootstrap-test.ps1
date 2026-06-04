@@ -37,6 +37,21 @@ try {
     Assert "pre-commit hook installed" (Test-Path "$tmp\.git\hooks\pre-commit")
     Assert "name written to yaml"      ([bool](Select-String -Path "$tmp\.ai\config\project.yaml" -Pattern "Boot_Win" -Quiet))
     Assert "marker has brain=unknown"  ([bool](Select-String -Path "$tmp\.ai\.bootstrapped" -Pattern "brain=unknown" -Quiet))
+
+    # The hook must actually SPAWN and RUN (catches a BOM/CRLF corrupting the shebang).
+    Push-Location $tmp
+    New-Item -ItemType Directory -Path "$tmp\src" -Force | Out-Null
+    "ok" | Set-Content "$tmp\src\ok.txt"
+    git add src/ok.txt 2>&1 | Out-Null
+    git commit -m "ok" 2>&1 | Out-Null
+    $normalOk = ($LASTEXITCODE -eq 0)
+    "raw" | Set-Content "$tmp\data\raw\x.txt"
+    git add -f data/raw/x.txt 2>&1 | Out-Null
+    git commit -m "raw" 2>&1 | Out-Null
+    $blocked = ($LASTEXITCODE -ne 0)
+    Pop-Location
+    Assert "normal commit succeeds (hook spawns)" $normalOk
+    Assert "hook blocks data/raw commit"          $blocked
 }
 finally {
     Remove-Item -Recurse -Force $tmp -ErrorAction SilentlyContinue
