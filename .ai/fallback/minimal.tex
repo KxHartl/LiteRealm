@@ -1,8 +1,19 @@
 \documentclass[12pt,a4paper]{article}
 
-% Encoding & language
-\usepackage[utf8]{inputenc}
-\usepackage[T1]{fontenc}
+% Encoding, font & language (dual-engine; Tectonic/XeTeX is canonical)
+\usepackage{iftex}
+\ifPDFTeX
+  \usepackage[utf8]{inputenc}
+  \usepackage[T1]{fontenc}
+  \usepackage{newtxtext}
+\else
+  \usepackage{fontspec}
+  \setmainfont{texgyretermes-regular.otf}[
+    BoldFont       = texgyretermes-bold.otf,
+    ItalicFont     = texgyretermes-italic.otf,
+    BoldItalicFont = texgyretermes-bolditalic.otf
+  ]
+\fi
 \usepackage[croatian]{babel}
 
 % Basic packages
