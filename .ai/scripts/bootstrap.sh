@@ -24,6 +24,7 @@ done
 
 root="$(cd "$(dirname "$0")/../.." && pwd)"
 marker="$root/.ai/.bootstrapped"
+brain_version="unknown"   # set once AgentBrain is located; used in the marker
 
 # --- Auto mode: read name from project.yaml ---
 if [[ "$AUTO" == true && -z "$NAME" ]]; then
@@ -64,7 +65,7 @@ echo "Brain:   $BRAIN"
 echo ""
 
 # --- 1. Set project name in config files ---
-echo "[1/6] Setting project name..."
+echo "[1/7] Setting project name..."
 if [[ -n "$NAME" ]]; then
     state_file="$root/STATE.md"
     yaml_file="$root/.ai/config/project.yaml"
@@ -87,7 +88,7 @@ else
 fi
 
 # --- 2. Create directory structure ---
-echo "[2/6] Creating directories..."
+echo "[2/7] Creating directories..."
 mkdir -p "$root"/{docs,src,dist,data/raw,data/processed,data/sources}
 
 # Kreiraj SOURCES_LOG.md ako ne postoji
@@ -107,19 +108,21 @@ fi
 echo "  Directories created."
 
 # --- 3. Setup .env ---
-echo "[3/6] Configuring .env..."
+echo "[3/7] Configuring .env..."
 env_file="$root/.env"
 env_example="$root/.env.example"
 
-if [[ ! -f "$env_file" ]] && [[ -f "$env_example" ]]; then
+if [[ -f "$env_file" ]]; then
+    echo "  .env already exists, skipping."
+elif [[ -f "$env_example" ]]; then
     cp "$env_example" "$env_file"
     echo "  .env created from .env.example."
 else
-    echo "  .env already exists, skipping."
+    echo "  No .env.example found, skipping."
 fi
 
-# --- 4. AgentBrain setup ---
-echo "[4/6] Checking AgentBrain..."
+# --- 4. AgentBrain setup + version contract ---
+echo "[4/7] Checking AgentBrain..."
 brain_path="${AGENTBRAIN_PATH:-$HOME/.agentbrain}"
 
 if [[ "$BRAIN" == "global" ]]; then
@@ -128,19 +131,6 @@ if [[ "$BRAIN" == "global" ]]; then
         repo_url="https://github.com/KxHartl/AgentBrain.git"
         if git clone "$repo_url" "$brain_path" 2>/dev/null; then
             echo "  AgentBrain cloned successfully."
-            manifest="$brain_path/manifest.yaml"
-            if [[ -f "$manifest" ]]; then
-                brain_version=$(grep '^version:' "$manifest" | awk '{print $2}' | tr -d '"')
-                echo "  AgentBrain version: $brain_version"
-                yaml_file="$root/.ai/config/project.yaml"
-                if [[ -f "$yaml_file" ]] && ! grep -q "agentbrain_version" "$yaml_file"; then
-                    echo "" >> "$yaml_file"
-                    echo "# AgentBrain version used during bootstrap" >> "$yaml_file"
-                    echo "agentbrain_version: \"$brain_version\"" >> "$yaml_file"
-                    brain_commit=$(cd "$brain_path" && git rev-parse --short HEAD 2>/dev/null || echo "unknown")
-                    echo "agentbrain_commit: \"$brain_commit\"" >> "$yaml_file"
-                fi
-            fi
         else
             echo "  WARNING: Failed to clone AgentBrain (no internet?)."
             echo "  Copying offline fallback template..."
@@ -153,72 +143,89 @@ if [[ "$BRAIN" == "global" ]]; then
         fi
     else
         echo "  AgentBrain found: $brain_path"
-        # Check version contract
-        manifest="$brain_path/manifest.yaml"
-        if [[ -f "$manifest" ]]; then
-            brain_version=$(grep '^version:' "$manifest" | awk '{print $2}' | tr -d '"')
-            echo "  AgentBrain version: $brain_version"
+    fi
 
-            # Stamp version into project.yaml
-            yaml_file="$root/.ai/config/project.yaml"
-            if [[ -f "$yaml_file" ]] && ! grep -q "agentbrain_version" "$yaml_file"; then
-                echo "" >> "$yaml_file"
-                echo "# AgentBrain version used during bootstrap" >> "$yaml_file"
-                echo "agentbrain_version: \"$brain_version\"" >> "$yaml_file"
-                brain_commit=$(cd "$brain_path" && git rev-parse --short HEAD 2>/dev/null || echo "unknown")
-                echo "agentbrain_commit: \"$brain_commit\"" >> "$yaml_file"
+    # Shared manifest handling — runs whether AgentBrain was just cloned or already present.
+    manifest="$brain_path/manifest.yaml"
+    if [[ -f "$manifest" ]]; then
+        brain_version=$(grep '^version:' "$manifest" | awk '{print $2}' | tr -d '"')
+        brain_version="${brain_version:-unknown}"
+        echo "  AgentBrain version: $brain_version"
+
+        # Version contract: warn if this LiteRealm is older than the brain requires.
+        version_file="$root/VERSION"
+        lite_version=$(if [[ -f "$version_file" ]]; then tr -d '[:space:]' < "$version_file"; else echo "unknown"; fi)
+        min_lite=$(grep '^min_literealm_version:' "$manifest" | awk '{print $2}' | tr -d '"')
+        if [[ -n "$min_lite" && "$lite_version" != "unknown" ]]; then
+            lowest=$(printf '%s\n%s\n' "$lite_version" "$min_lite" | sort -V | head -1)
+            if [[ "$lite_version" != "$min_lite" && "$lowest" == "$lite_version" ]]; then
+                echo "  WARNING: LiteRealm $lite_version is older than AgentBrain requires (min $min_lite)."
+                echo "           Update this project from the latest LiteRealm template."
             fi
-        else
-            echo "  WARNING: AgentBrain manifest.yaml not found. Consider updating AgentBrain."
         fi
+
+        # Stamp brain version + commit into project.yaml (once).
+        yaml_file="$root/.ai/config/project.yaml"
+        if [[ -f "$yaml_file" ]] && ! grep -q "agentbrain_version" "$yaml_file"; then
+            brain_commit=$(cd "$brain_path" && git rev-parse --short HEAD 2>/dev/null || echo "unknown")
+            echo "" >> "$yaml_file"
+            echo "# AgentBrain version used during bootstrap" >> "$yaml_file"
+            echo "agentbrain_version: \"$brain_version\"" >> "$yaml_file"
+            echo "agentbrain_commit: \"$brain_commit\"" >> "$yaml_file"
+        fi
+    else
+        echo "  WARNING: AgentBrain manifest.yaml not found. Consider updating AgentBrain."
     fi
 fi
 
-# --- 5. Python environment ---
-echo "[5/6] Python environment..."
+# --- 5. Python environment (best-effort; must NOT abort the rest of bootstrap) ---
+echo "[5/7] Python environment..."
+set +e   # dependency install is non-fatal — hooks/LFS/marker must still run
 
-# Prefer uv, fall back to pip
+venv_path="$root/.venv"
+# Locate the venv interpreter for both Linux (bin/) and Windows-bash (Scripts/) layouts.
+detect_vpy() {
+    if [[ -x "$venv_path/bin/python" ]]; then echo "$venv_path/bin/python"
+    elif [[ -f "$venv_path/Scripts/python.exe" ]]; then echo "$venv_path/Scripts/python.exe"
+    else echo ""; fi
+}
+
 if command -v uv &>/dev/null; then
     echo "  Using uv (fast mode)."
-    venv_path="$root/.venv"
-    if [[ ! -d "$venv_path" ]]; then
-        uv venv "$venv_path"
+    [[ -d "$venv_path" ]] || uv venv "$venv_path"
+    vpy="$(detect_vpy)"
+    if [[ -n "$vpy" ]]; then
+        uv pip install --python "$vpy" -q python-dotenv
+        # RAG deps only needed locally if NOT using global brain (agentbrain already has them)
+        if [[ "$RAG" != "none" && "$BRAIN" != "global" ]]; then
+            echo "  Installing RAG dependencies..."
+            uv pip install --python "$vpy" -q docling lancedb sentence-transformers pypdf
+        elif [[ "$RAG" != "none" ]]; then
+            echo "  RAG enabled — using ~/.agentbrain/.venv (skipping local install)."
+        fi
+        echo "  Python OK (uv)."
+    else
+        echo "  WARNING: could not locate venv interpreter; skipping dependency install."
     fi
-    uv pip install --python "$venv_path/bin/python" -q python-dotenv
-
-    # RAG deps only needed locally if NOT using global brain (agentbrain already has them)
-    if [[ "$RAG" != "none" && "$BRAIN" != "global" ]]; then
-        echo "  Installing RAG dependencies..."
-        uv pip install --python "$venv_path/bin/python" -q docling lancedb sentence-transformers pypdf
-    elif [[ "$RAG" != "none" ]]; then
-        echo "  RAG enabled — using ~/.agentbrain/.venv (skipping local install)."
-    fi
-    echo "  Python OK (uv)."
 else
     # Fallback to traditional pip/venv
     python_cmd=""
     for cmd in python3 python; do
-        if $cmd --version 2>&1 | grep -q "Python 3\."; then
-            python_cmd="$cmd"
-            break
-        fi
+        if $cmd --version 2>&1 | grep -q "Python 3\."; then python_cmd="$cmd"; break; fi
     done
 
     if [[ -n "$python_cmd" ]]; then
-        venv_path="$root/.venv"
-        if [[ ! -d "$venv_path" ]]; then
-            $python_cmd -m venv "$venv_path"
-        fi
-
-        pip_cmd="$venv_path/bin/pip"
-        $pip_cmd install -q python-dotenv 2>/dev/null
-
-        # RAG deps only needed locally if NOT using global brain
-        if [[ "$RAG" != "none" && "$BRAIN" != "global" ]]; then
-            echo "  Installing RAG dependencies..."
-            $pip_cmd install -q docling lancedb sentence-transformers pypdf 2>/dev/null
-        elif [[ "$RAG" != "none" ]]; then
-            echo "  RAG enabled — using ~/.agentbrain/.venv (skipping local install)."
+        [[ -d "$venv_path" ]] || $python_cmd -m venv "$venv_path"
+        pip_cmd="$venv_path/bin/pip"; [[ -x "$pip_cmd" ]] || pip_cmd="$venv_path/Scripts/pip.exe"
+        if [[ -e "$pip_cmd" ]]; then
+            "$pip_cmd" install -q python-dotenv
+            # RAG deps only needed locally if NOT using global brain
+            if [[ "$RAG" != "none" && "$BRAIN" != "global" ]]; then
+                echo "  Installing RAG dependencies..."
+                "$pip_cmd" install -q docling lancedb sentence-transformers pypdf
+            elif [[ "$RAG" != "none" ]]; then
+                echo "  RAG enabled — using ~/.agentbrain/.venv (skipping local install)."
+            fi
         fi
         echo "  Python OK ($python_cmd)."
     else
@@ -226,14 +233,22 @@ else
     fi
 fi
 
-# --- 6. Install git hooks ---
-echo "[6/7] Installing git hooks..."
+set -e
+
+# --- 6. Git setup: pre-commit hook + Git LFS ---
+echo "[6/7] Git setup (hooks + LFS)..."
+
+inside_repo=false
+if git -C "$root" rev-parse --is-inside-work-tree &>/dev/null; then
+    inside_repo=true
+fi
 
 hook_dir="$root/.git/hooks"
 pre_commit_hook="$hook_dir/pre-commit"
 
-if [[ ! -f "$pre_commit_hook" ]]; then
-    cat > "$pre_commit_hook" << 'HOOK'
+if [[ -d "$hook_dir" ]]; then
+    if [[ ! -f "$pre_commit_hook" ]]; then
+        cat > "$pre_commit_hook" << 'HOOK'
 #!/bin/sh
 # LiteRealm: block changes to data/raw/ — it is read-only source data.
 if git diff --cached --name-only | grep -q "^data/raw/"; then
@@ -241,18 +256,33 @@ if git diff --cached --name-only | grep -q "^data/raw/"; then
     exit 1
 fi
 HOOK
-    chmod +x "$pre_commit_hook"
-    echo "  pre-commit hook installed (data/raw/ protection)."
+        chmod +x "$pre_commit_hook"
+        echo "  pre-commit hook installed (data/raw/ protection)."
+    else
+        echo "  pre-commit hook already exists, skipping."
+    fi
 else
-    echo "  pre-commit hook already exists, skipping."
+    echo "  Not a git repo (no .git/hooks) — skipping pre-commit hook."
+fi
+
+if command -v git-lfs &>/dev/null || git lfs version &>/dev/null; then
+    if [[ "$inside_repo" == true ]]; then
+        git -C "$root" lfs install --local &>/dev/null
+        echo "  Git LFS installed (data/sources/ large files tracked)."
+    else
+        echo "  Git LFS present but not inside a repo — skipping install."
+    fi
+else
+    echo "  WARNING: git-lfs not found. Install it (https://git-lfs.com) so PDFs in"
+    echo "           data/sources/ are tracked via LFS, not committed as large blobs."
 fi
 
 # --- 7. Check LaTeX (Tectonic) ---
 echo "[7/7] Checking LaTeX compiler..."
 if command -v tectonic &>/dev/null; then
-    echo "  tectonic found."
+    echo "  tectonic found (recommended engine)."
 elif command -v latexmk &>/dev/null; then
-    echo "  latexmk found (legacy). Consider installing Tectonic for faster builds."
+    echo "  latexmk found (legacy fallback). Tectonic is the canonical engine."
 else
     echo "  No LaTeX compiler found."
     echo "  Install Tectonic: curl --proto '=https' --tlsv1.2 -fsSL https://drop-sh.fullyjustified.net | sh"
@@ -260,13 +290,13 @@ else
 fi
 
 # --- Done ---
-echo "$(date -Iseconds) | brain=${brain_version:-unknown} | rag=$RAG" > "$marker"
+echo "$(date -Iseconds) | brain=${brain_version} | rag=$RAG" > "$marker"
 
 echo ""
 echo "=== Bootstrap complete ==="
 echo ""
 echo "Next steps:"
-echo "  1. Fill in STATE.md with your assignment details"
+echo "  1. Fill in STATE.md and .ai/config/project.yaml with your assignment details"
 echo "  2. Tell your AI agent: 'pocni pisati' — latex_architect sets up docs/ automatically"
 echo "  3. Add literature PDFs to data/sources/ (tracked via Git LFS)"
 if [[ "$RAG" != "none" ]]; then
