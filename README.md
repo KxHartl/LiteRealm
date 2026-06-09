@@ -70,7 +70,7 @@ Run once after cloning. It is **idempotent** — safe to re-run any time.
 - ✅ Creates the directory skeleton (`docs/`, `src/`, `data/{raw,processed,sources}`, `dist/`)
 - ✅ Copies `.env` from `.env.example`
 - ✅ Clones **AgentBrain** to `~/.agentbrain` if it isn't there yet
-- ✅ Creates a minimal project `.venv` (just `python-dotenv`) — heavy RAG deps live once in `~/.agentbrain/.venv`
+- ✅ Creates a minimal project `.venv` (just `python-dotenv`); on first run, also builds the shared RAG env in `~/.agentbrain/.venv` (one-time, ~500 MB — docling + models)
 - ✅ Installs a Git pre-commit hook that protects `data/raw/` from edits
 - ✅ Enables Git LFS for `data/sources/` and checks your LaTeX compiler
 

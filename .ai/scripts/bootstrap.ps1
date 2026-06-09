@@ -189,6 +189,22 @@ if ($Brain -eq "global") {
     } else {
         Write-Host "  WARNING: AgentBrain manifest.yaml not found. Consider updating AgentBrain." -ForegroundColor Yellow
     }
+
+    # Ensure the shared RAG environment exists (always-on RAG via AgentBrain).
+    # One-time per machine; ~500MB (docling + ML models). Non-fatal.
+    $brainVenv = Join-Path $brainPath ".venv"
+    $brainSetup = Join-Path $brainPath "scripts\setup_env.ps1"
+    if (Test-Path $brainVenv) {
+        Write-Host "  RAG environment present (~/.agentbrain/.venv)." -ForegroundColor Green
+    } elseif (Test-Path $brainSetup) {
+        Write-Host "  Setting up RAG environment (one-time, may take a few minutes)..." -ForegroundColor Yellow
+        try {
+            & $brainSetup
+            Write-Host "  RAG environment ready." -ForegroundColor Green
+        } catch {
+            Write-Host "  WARNING: RAG setup failed. Run later: $brainSetup" -ForegroundColor Red
+        }
+    }
 }
 
 # --- 5. Python environment ---
