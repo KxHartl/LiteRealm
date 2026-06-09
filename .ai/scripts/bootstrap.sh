@@ -168,6 +168,19 @@ if [[ "$BRAIN" == "global" ]]; then
     else
         echo "  WARNING: AgentBrain manifest.yaml not found. Consider updating AgentBrain."
     fi
+
+    # Ensure the shared RAG environment exists (always-on RAG via AgentBrain).
+    # One-time per machine; ~500MB (docling + ML models). Non-fatal.
+    if [[ -d "$brain_path/.venv" ]]; then
+        echo "  RAG environment present (~/.agentbrain/.venv)."
+    elif [[ -f "$brain_path/scripts/setup_env.sh" ]]; then
+        echo "  Setting up RAG environment (one-time, may take a few minutes)..."
+        if bash "$brain_path/scripts/setup_env.sh"; then
+            echo "  RAG environment ready."
+        else
+            echo "  WARNING: RAG setup failed. Run later: bash $brain_path/scripts/setup_env.sh"
+        fi
+    fi
 fi
 
 # --- 5. Python environment (best-effort; must NOT abort the rest of bootstrap) ---
