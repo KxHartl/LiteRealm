@@ -191,10 +191,14 @@ if ($Brain -eq "global") {
     }
 
     # Ensure the shared RAG environment exists (always-on RAG via AgentBrain).
-    # One-time per machine; ~500MB (docling + ML models). Non-fatal.
+    # ~1.5GB (docling + torch + models), so skip it inside Codespaces to keep
+    # container creation light — the RAG scripts build the venv on first use there.
+    # One-time per machine; non-fatal.
     $brainVenv = Join-Path $brainPath ".venv"
     $brainSetup = Join-Path $brainPath "scripts\setup_env.ps1"
-    if (Test-Path $brainVenv) {
+    if ($env:CODESPACES) {
+        Write-Host "  In Codespaces — RAG deps install on first use (keeping creation light)." -ForegroundColor Gray
+    } elseif (Test-Path $brainVenv) {
         Write-Host "  RAG environment present (~/.agentbrain/.venv)." -ForegroundColor Green
     } elseif (Test-Path $brainSetup) {
         Write-Host "  Setting up RAG environment (one-time, may take a few minutes)..." -ForegroundColor Yellow
@@ -338,5 +342,5 @@ Write-Host 'Next steps:' -ForegroundColor White
 Write-Host '  1. Fill in STATE.md and .ai/config/project.yaml with your assignment details'
 Write-Host '  2. Tell your AI agent: "počni pisati" — latex_architect sets up docs/ automatically'
 Write-Host '  3. Add literature PDFs to data/sources/ (tracked via Git LFS)'
-Write-Host '  4. Index them for RAG: python ~/.agentbrain/scripts/rag/ingest.py'
+Write-Host '  4. Index them for RAG: .\.ai\scripts\helpers\rag.ps1 ingest'
 Write-Host ''

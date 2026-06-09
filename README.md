@@ -125,23 +125,27 @@ Drop PDFs into `data/sources/` and your agents can quote them with page-accurate
 PDFs are parsed with **Docling** (understands tables, multi-column layouts, figures) and stored
 in **LanceDB**. Scripts and their Python deps live **once** in `~/.agentbrain/` — never duplicated.
 
-```bash
-# 1. Add literature (auto-tracked by Git LFS)
-git add data/sources/paper.pdf && git commit -m "feat: add source"
+Use the `rag` helper so you never have to type the brain path (and to avoid `~` not
+expanding in PowerShell). Replace `.ps1`/`.sh` for your shell:
 
-# 2. Index it (uses ~/.agentbrain/.venv automatically)
-python ~/.agentbrain/scripts/rag/ingest.py            # add --ocr for scanned PDFs
+```powershell
+# 1. Add literature (auto-tracked by Git LFS)
+git add data/sources/paper.pdf; git commit -m "feat: add source"
+
+# 2. Index it           (Windows: rag.ps1 · Linux/macOS: rag.sh ingest)
+.\.ai\scripts\helpers\rag.ps1 ingest          # add --ocr for scanned PDFs
 
 # 3. Ask questions
-python ~/.agentbrain/scripts/rag/query.py "your question" --scope both
+.\.ai\scripts\helpers\rag.ps1 query "your question" --scope both
 
 # 4. Generate BibTeX from a DOI
-python ~/.agentbrain/scripts/add_citation.py --doi "10.1109/TRO.2024.1234567"
+.\.ai\scripts\helpers\rag.ps1 cite --doi "10.1109/TRO.2024.1234567"
 ```
 
-RAG is **always on** — no flag to enable, nothing to install per-project. Embeddings use
-Gemini automatically if `GEMINI_API_KEY` is set in `.env`, otherwise local
-`sentence-transformers`. Either way it just works.
+RAG is **always on** — no flag to enable, nothing to configure per-project. The first
+`ingest`/`query` builds the shared `~/.agentbrain/.venv` automatically if it isn't there
+yet (≈1.5 GB, one-time). Embeddings use Gemini if `GEMINI_API_KEY` is set in `.env`,
+otherwise local `sentence-transformers`. Either way it just works.
 
 ---
 

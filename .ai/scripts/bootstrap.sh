@@ -170,8 +170,12 @@ if [[ "$BRAIN" == "global" ]]; then
     fi
 
     # Ensure the shared RAG environment exists (always-on RAG via AgentBrain).
-    # One-time per machine; ~500MB (docling + ML models). Non-fatal.
-    if [[ -d "$brain_path/.venv" ]]; then
+    # ~1.5GB (docling + torch + models), so skip it inside Codespaces to keep
+    # container creation light — the RAG scripts build the venv on first use there.
+    # One-time per machine; non-fatal.
+    if [[ -n "$CODESPACES" ]]; then
+        echo "  In Codespaces — RAG deps install on first use (keeping creation light)."
+    elif [[ -d "$brain_path/.venv" ]]; then
         echo "  RAG environment present (~/.agentbrain/.venv)."
     elif [[ -f "$brain_path/scripts/setup_env.sh" ]]; then
         echo "  Setting up RAG environment (one-time, may take a few minutes)..."
@@ -292,5 +296,5 @@ echo "Next steps:"
 echo "  1. Fill in STATE.md and .ai/config/project.yaml with your assignment details"
 echo "  2. Tell your AI agent: 'pocni pisati' — latex_architect sets up docs/ automatically"
 echo "  3. Add literature PDFs to data/sources/ (tracked via Git LFS)"
-echo "  4. Index them for RAG: python ~/.agentbrain/scripts/rag/ingest.py"
+echo "  4. Index them for RAG: ./.ai/scripts/helpers/rag.sh ingest"
 echo ""
