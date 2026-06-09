@@ -30,6 +30,17 @@ jobs:
         with:
           python-version: '3.11'
 
+      - name: PowerShell scripts must be ASCII-only
+        # Windows PowerShell 5.1 reads .ps1 files as ANSI when there's no BOM, so a
+        # non-ASCII char (em-dash, diacritic) inside a string corrupts it and aborts
+        # parsing. Keeping .ps1 ASCII-only avoids that — CI's pwsh 7 wouldn't catch it.
+        run: |
+          if grep -rlP '[^\x00-\x7F]' --include='*.ps1' .; then
+            echo "::error::Non-ASCII bytes in the .ps1 file(s) above — breaks Windows PowerShell 5.1."
+            exit 1
+          fi
+          echo "All .ps1 files are ASCII-only."
+
       - name: Bootstrap smoke test (bash)
         run: bash tests/bootstrap-test.sh
 

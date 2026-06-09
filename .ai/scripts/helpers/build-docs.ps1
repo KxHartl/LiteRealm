@@ -26,7 +26,7 @@ if (-not $Version) {
     if ($yamlContent -match 'dist_version:\s*"?([^"\r\n#]+)"?') { $Version = $Matches[1].Trim() }
 }
 
-# Versioned dist subfolder — never the dist/ root (see AGENTS.md).
+# Versioned dist subfolder - never the dist/ root (see AGENTS.md).
 $distDir = Join-Path $rootDir "dist\$Version"
 if (-not (Test-Path $distDir)) { New-Item -ItemType Directory -Path $distDir -Force | Out-Null }
 
@@ -44,7 +44,7 @@ if ($Engine -eq "auto") {
 
 Write-Host "Engine: $Engine | Version: $Version" -ForegroundColor Gray
 
-# Build LaTeX documents — only top-level docs/*.tex (the main document).
+# Build LaTeX documents - only top-level docs/*.tex (the main document).
 # chapters/*.tex are \input fragments, not standalone, so they must not be compiled.
 $texFiles = Get-ChildItem -Path "docs" -Filter "*.tex" -File -ErrorAction SilentlyContinue
 
@@ -57,7 +57,7 @@ foreach ($file in $texFiles) {
     Write-Host "Building $($file.Name)..." -ForegroundColor Yellow
     $outDir = Join-Path $file.DirectoryName "build"
 
-    # -Force: briše build/ da prisili potpunu rekompilaciju (rješava latexmk stale cache)
+    # -Force: wipe build/ to force a full recompile (clears stale latexmk cache)
     if ($Force -and (Test-Path $outDir)) {
         Remove-Item -Recurse -Force $outDir
         Write-Host "  Force clean: build/ obrisan." -ForegroundColor Gray
@@ -80,7 +80,7 @@ foreach ($file in $texFiles) {
             Write-Host "Done: $pdfName -> dist/$Version/" -ForegroundColor Green
         }
 
-        # Provjera broja stranica (iz .log fajla — "Output written on ...")
+        # Provjera broja stranica (iz .log fajla - "Output written on ...")
         if ($maxPages -gt 0) {
             $logFile = Join-Path $outDir ($file.BaseName + ".log")
             if (Test-Path $logFile) {

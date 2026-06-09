@@ -5,7 +5,7 @@
     .\.ai\scripts\bootstrap.ps1 -Name "Autonomni_Vilicari"
     .\.ai\scripts\bootstrap.ps1 -Auto
 .NOTES
-    RAG is always available via AgentBrain (~/.agentbrain/.venv) — no flag needed.
+    RAG is always available via AgentBrain (~/.agentbrain/.venv) - no flag needed.
 #>
 
 param (
@@ -150,7 +150,7 @@ if ($Brain -eq "global") {
         Write-Host "  AgentBrain found: $brainPath" -ForegroundColor Green
     }
 
-    # Shared manifest handling — runs whether AgentBrain was just cloned or already present.
+    # Shared manifest handling - runs whether AgentBrain was just cloned or already present.
     $manifest = Join-Path $brainPath "manifest.yaml"
     if (Test-Path $manifest) {
         $manifestContent = Get-Content $manifest -Raw
@@ -192,12 +192,12 @@ if ($Brain -eq "global") {
 
     # Ensure the shared RAG environment exists (always-on RAG via AgentBrain).
     # ~1.5GB (docling + torch + models), so skip it inside Codespaces to keep
-    # container creation light — the RAG scripts build the venv on first use there.
+    # container creation light - the RAG scripts build the venv on first use there.
     # One-time per machine; non-fatal.
     $brainVenv = Join-Path $brainPath ".venv"
     $brainSetup = Join-Path $brainPath "scripts\setup_env.ps1"
     if ($env:CODESPACES) {
-        Write-Host "  In Codespaces — RAG deps install on first use (keeping creation light)." -ForegroundColor Gray
+        Write-Host "  In Codespaces - RAG deps install on first use (keeping creation light)." -ForegroundColor Gray
     } elseif (Test-Path $brainVenv) {
         Write-Host "  RAG environment present (~/.agentbrain/.venv)." -ForegroundColor Green
     } elseif (Test-Path $brainSetup) {
@@ -224,7 +224,7 @@ if ($uvAvailable) {
     }
     $pythonPath = Join-Path $venvPath "Scripts\python.exe"
     uv pip install --python $pythonPath -q python-dotenv
-    # RAG deps are NOT installed per-project — they live once in ~/.agentbrain/.venv.
+    # RAG deps are NOT installed per-project - they live once in ~/.agentbrain/.venv.
     Write-Host "  Python OK (uv)." -ForegroundColor Green
 } else {
     # Fallback to traditional pip/venv
@@ -252,7 +252,7 @@ if ($uvAvailable) {
             $ErrorActionPreference = "Continue"
             try {
                 & $pipCmd install -q python-dotenv
-                # RAG deps are NOT installed per-project — they live once in ~/.agentbrain/.venv.
+                # RAG deps are NOT installed per-project - they live once in ~/.agentbrain/.venv.
             }
             finally {
                 $ErrorActionPreference = $oldPreference
@@ -280,7 +280,7 @@ $preCommitHook = Join-Path $hookDir "pre-commit"
 
 $hookContent = @'
 #!/bin/sh
-# LiteRealm: block changes to data/raw/ — it is read-only source data.
+# LiteRealm: block changes to data/raw/ - it is read-only source data.
 if git diff --cached --name-only | grep -q "^data/raw/"; then
     echo "ERROR: data/raw/ is read-only. Move processed files to data/processed/." >&2
     exit 1
@@ -298,7 +298,7 @@ if (Test-Path $hookDir) {
         Write-Host "  pre-commit hook already exists, skipping." -ForegroundColor Gray
     }
 } else {
-    Write-Host "  Not a git repo (no .git/hooks) — skipping pre-commit hook." -ForegroundColor Gray
+    Write-Host "  Not a git repo (no .git/hooks) - skipping pre-commit hook." -ForegroundColor Gray
 }
 
 git lfs version *> $null
@@ -309,7 +309,7 @@ if ($LASTEXITCODE -eq 0) {
         Pop-Location
         Write-Host "  Git LFS installed (data/sources/ large files tracked)." -ForegroundColor Green
     } else {
-        Write-Host "  Git LFS present but not inside a repo — skipping install." -ForegroundColor Gray
+        Write-Host "  Git LFS present but not inside a repo - skipping install." -ForegroundColor Gray
     }
 } else {
     Write-Host "  WARNING: git-lfs not found. Install it (https://git-lfs.com) so PDFs in" -ForegroundColor Yellow
@@ -340,7 +340,7 @@ Write-Host "`n=== Bootstrap complete ===" -ForegroundColor Cyan
 Write-Host ''
 Write-Host 'Next steps:' -ForegroundColor White
 Write-Host '  1. Fill in STATE.md and .ai/config/project.yaml with your assignment details'
-Write-Host '  2. Tell your AI agent: "počni pisati" — latex_architect sets up docs/ automatically'
+Write-Host '  2. Tell your AI agent: "pocni pisati" - latex_architect sets up docs/ automatically'
 Write-Host '  3. Add literature PDFs to data/sources/ (tracked via Git LFS)'
 Write-Host '  4. Index them for RAG: .\.ai\scripts\helpers\rag.ps1 ingest'
 Write-Host ''

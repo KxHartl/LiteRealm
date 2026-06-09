@@ -20,7 +20,7 @@ $script = switch ($Command) {
 }
 
 if (-not (Test-Path $script)) {
-    Write-Host "Not found: $script — is AgentBrain installed?" -ForegroundColor Red
+    Write-Host "Not found: $script - is AgentBrain installed?" -ForegroundColor Red
     exit 1
 }
 
