@@ -12,7 +12,7 @@ Processed data, charts and models.
 PDF literature for RAG — books, lecture notes, papers. Drop files here, then index them:
 
 ```bash
-python ~/.agentbrain/scripts/rag/ingest.py
+./.ai/scripts/helpers/rag.sh ingest          # Windows: .\.ai\scripts\helpers\rag.ps1 ingest
 ```
 
 Files in this folder are tracked via **Git LFS**.

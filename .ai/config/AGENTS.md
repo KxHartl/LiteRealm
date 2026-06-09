@@ -71,10 +71,12 @@ RAG je **uvijek dostupan** kroz AgentBrain (`~/.agentbrain`) — nema toggle opc
 Embeddings koriste Gemini ako je `GEMINI_API_KEY` postavljen u `.env`, inače lokalni
 `sentence-transformers`. Agent može pretraživati korisnikove PDF izvore:
 
-1. **Ingestija**: `python ~/.agentbrain/scripts/rag/ingest.py` — parsira PDF-ove iz `data/sources/` koristeći Docling i sprema u LanceDB bazu u `.ai/rag/db/`.
-2. **Pretraga**: `python ~/.agentbrain/scripts/rag/query.py "pitanje" --scope both` — vraća relevantne odlomke s izvorom i stranicom.
+Koristi `rag` wrapper (`.\.ai\scripts\helpers\rag.ps1` na Windowsu, `./.ai/scripts/helpers/rag.sh` na bashu) — razrješava putanju do braina i izbjegava `~` koji se u PowerShellu ne razvija:
+
+1. **Ingestija**: `rag ingest` — parsira PDF-ove iz `data/sources/` koristeći Docling i sprema u LanceDB bazu u `.ai/rag/db/`.
+2. **Pretraga**: `rag query "pitanje" --scope both` — vraća relevantne odlomke s izvorom i stranicom.
 3. **Citiranje**: Koristi dobivene reference za precizno citiranje u seminaru (`\cite{key}`).
-4. **BibTeX**: `python ~/.agentbrain/scripts/add_citation.py --doi "10.xxxx/yyyy"`
+4. **BibTeX**: `rag cite --doi "10.xxxx/yyyy"`
 
 ## Global Brain
 
