@@ -78,6 +78,11 @@ Koristi `rag` wrapper (`.\.ai\scripts\helpers\rag.ps1` na Windowsu, `./.ai/scrip
 3. **Citiranje**: Koristi dobivene reference za precizno citiranje u seminaru (`\cite{key}`).
 4. **BibTeX**: `rag cite --doi "10.xxxx/yyyy"`
 
+**Lokacija baze**: Vektorska baza je regenerabilan artefakt u `.ai/rag/db/`. LanceDB ne može
+commitati na FAT/exFAT diskovima, pa se na takvim volumenima baza automatski premješta u
+`%LOCALAPPDATA%\AgentBrain\rag\<projekt>\db` (ingest ispiše točnu putanju). PDF izvori ostaju u
+`data/sources/`. Override lokacije: postavi `RAG_DB_DIR`.
+
 ## Global Brain
 
 Ovaj projekt koristi `AgentBrain` (`~/.agentbrain`) kao "mozak":
