@@ -35,7 +35,7 @@ if [[ -f "$yaml_path" ]]; then
 fi
 version="${version:-dev}"
 
-# Versioned dist subfolder — never the dist/ root (see AGENTS.md).
+# Versioned dist subfolder — never the dist/ root (see .ai/config/REFERENCE.md).
 dist_dir="${root_dir}/dist/${version}"
 mkdir -p "$dist_dir"
 

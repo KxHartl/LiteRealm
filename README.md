@@ -114,7 +114,7 @@ latex_architect → data_fetcher → writer → qa_reviewer → latex_surgeon �
 | `data/raw/` | Original input data | 🔒 **Read-only** — enforced by pre-commit hook |
 | `data/processed/` | Derived data | Subfolders `source_ddmmyyyy_hhmmss/` |
 | `data/sources/` | Literature PDFs for RAG | Tracked via **Git LFS** |
-| `.ai/` | Project config, scripts, RAG database | Internal — `AGENTS.md` holds all agent rules |
+| `.ai/` | Project config, scripts, RAG database | Internal — `REFERENCE.md` holds the on-demand details |
 | `~/.agentbrain/` | Templates, agents, skills, RAG scripts | Shared across every project |
 
 ---
@@ -209,9 +209,9 @@ Also choose your `latex_format` (`fsb-seminar` · `fsb-thesis` · `fsb-paper` ·
 
 **Why is my `data/raw/` commit rejected?** That's the point — raw data is read-only. Put derived files in `data/processed/`.
 
-**The chat is in Croatian but the code isn't — why?** Convention: chat in Hrvatski, but code, comments, commits and docs in English. See [`.ai/config/AGENTS.md`](.ai/config/AGENTS.md).
+**The chat is in Croatian but the code isn't — why?** Convention: chat in Hrvatski, but code, comments, commits and docs in English. See [`AGENTS.md`](AGENTS.md).
 
-**Where are the agent rules?** All in [`.ai/config/AGENTS.md`](.ai/config/AGENTS.md) (project) and `~/.agentbrain/agents/` (definitions).
+**Where are the agent rules?** Core behavioral rules live in [`AGENTS.md`](AGENTS.md) (single source of truth — `CLAUDE.md`/`GEMINI.md` import it). On-demand details in [`.ai/config/REFERENCE.md`](.ai/config/REFERENCE.md), agent definitions in `~/.agentbrain/agents/` (synced to `.claude/agents/` for Claude Code).
 
 ---
 

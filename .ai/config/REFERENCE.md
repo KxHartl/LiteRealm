@@ -1,4 +1,7 @@
-# LiteRealm — Pravila za AI Agente
+# LiteRealm — Referentni priručnik za AI Agente
+
+> [!WARNING]
+> **ZA AI AGENTE:** Ovaj dokument služi isključivo kao *referentni priručnik (on-demand)*. NEMOJ ga čitati u cijelosti prije početka zadatka. Čitaj samo specifične sekcije ako su ti izričito potrebne (npr. RAG detalji, definicije agenta). Sva glavna ponašajna pravila već imaš iz root `AGENTS.md` (Claude/Gemini ga importaju kroz CLAUDE.md / GEMINI.md).
 
 Ovo je workspace za pisanje seminara, zadaća i akademskih radova uz pomoć AI agenata.
 
@@ -20,7 +23,11 @@ Ovo je workspace za pisanje seminara, zadaća i akademskih radova uz pomoć AI a
 
 ## Agent Routing
 
-Specijalizirani agenti su definirani u `~/.agentbrain/agents/`. Svaki agent ima jasno definirano područje odgovornosti:
+Specijalizirani agenti su definirani u `~/.agentbrain/agents/` (source of truth). Za
+Claude Code su sinkronizirani kao native subagenti u `.claude/agents/` — regeneriraj ih
+nakon promjene definicija: `python ~/.agentbrain/scripts/sync_agents.py --project-root .`
+
+Svaki agent ima jasno definirano područje odgovornosti:
 
 | Agent | Zadatak | Kada koristiti |
 |---|---|---|
@@ -94,7 +101,9 @@ Ovaj projekt koristi `AgentBrain` (`~/.agentbrain`) kao "mozak":
 ## Git & Kontrola Verzija
 
 1. **AI Oznake**: Prefiks `🤖 [AI]` u naslovu commita.
-2. **Inkrementalni Commits**: Commitaj svaku logičku cjelinu odmah.
+2. **Inkrementalni Commits**: Commitaj svaku logičku cjelinu odmah. Helper:
+   `.\.ai\scripts\helpers\checkpoint.ps1 "feat: opis"` (ili `checkpoint.sh`) radi
+   `add -A` + commit i sam dodaje `🤖 [AI]` prefiks ako nedostaje.
 3. **Strategija Grananja**:
    - Manje prepravke i pisanje teksta: radi izravno na `main`.
    - Veće strukturne promjene: kreiraj granu `ai/ime-featurea`.

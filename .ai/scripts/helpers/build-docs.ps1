@@ -26,7 +26,7 @@ if (-not $Version) {
     if ($yamlContent -match 'dist_version:\s*"?([^"\r\n#]+)"?') { $Version = $Matches[1].Trim() }
 }
 
-# Versioned dist subfolder - never the dist/ root (see AGENTS.md).
+# Versioned dist subfolder - never the dist/ root (see .ai/config/REFERENCE.md).
 $distDir = Join-Path $rootDir "dist\$Version"
 if (-not (Test-Path $distDir)) { New-Item -ItemType Directory -Path $distDir -Force | Out-Null }
 
