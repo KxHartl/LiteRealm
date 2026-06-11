@@ -9,6 +9,4 @@
    `.\.ai\scripts\helpers\checkpoint.ps1 "feat: opis"` (bash: `checkpoint.sh`).
 2. **Prije svakog završetka odgovora** pokreni `git status --porcelain` — ako izlaz
    nije prazan, commitaj prije nego odgovoriš korisniku. Ovo nije opcionalno.
-3. Nemaš native subagente: kad pravilo 4 kaže "delegiraj", sam preuzmi ulogu tog
-   agenta — ali prvo pročitaj njegovu definiciju iz `~/.agentbrain/agents/<ime>.md`
-   i strogo poštuj njegove `writes_to` / `never_touches` granice.
+3. **Imaš native subagente (Antigravity tools):** Kad pravilo 4 kaže "delegiraj", NE preuzimaj ulogu sam! Pročitaj definiciju agenta iz `~/.agentbrain/agents/<ime>.md`, iskoristi alat `define_subagent` da ga instanciraš koristeći taj file kao `system_prompt`, te mu delegiraj zadatak putem `invoke_subagent`. Tako štediš tokene glavnog konteksta i pravilno orkestriraš posao!
