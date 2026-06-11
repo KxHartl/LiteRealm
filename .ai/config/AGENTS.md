@@ -1,5 +1,8 @@
 # LiteRealm — Pravila za AI Agente
 
+> [!WARNING]
+> **ZA AI AGENTE:** Ovaj dokument služi isključivo kao *referentni priručnik (on-demand)*. NEMOJ ga čitati u cijelosti prije početka zadatka. Čitaj samo specifične sekcije ako su ti izričito potrebne (npr. RAG detalji, definicije agenta). Sva glavna ponašajna pravila već imaš u svom system promptu (iz GEMINI.md ili CLAUDE.md).
+
 Ovo je workspace za pisanje seminara, zadaća i akademskih radova uz pomoć AI agenata.
 
 ## Direktoriji (strogo poštivati)
