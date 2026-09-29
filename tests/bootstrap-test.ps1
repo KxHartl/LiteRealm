@@ -45,13 +45,32 @@ try {
     git add src/ok.txt 2>&1 | Out-Null
     git commit -m "ok" 2>&1 | Out-Null
     $normalOk = ($LASTEXITCODE -eq 0)
+    # data/raw/ is append-only: adding is allowed, modifying an existing file is blocked.
     "raw" | Set-Content "$tmp\data\raw\x.txt"
     git add -f data/raw/x.txt 2>&1 | Out-Null
     git commit -m "raw" 2>&1 | Out-Null
+    $addOk = ($LASTEXITCODE -eq 0)
+    "changed" | Set-Content "$tmp\data\raw\x.txt"
+    git add -f data/raw/x.txt 2>&1 | Out-Null
+    git commit -m "raw2" 2>&1 | Out-Null
     $blocked = ($LASTEXITCODE -ne 0)
+    git reset -q --hard 2>&1 | Out-Null
+
+    # Re-run must succeed and must not duplicate the auto-push block.
+    Remove-Item "$tmp\.ai\.bootstrapped" -ErrorAction SilentlyContinue
+    & "$tmp\.ai\scripts\bootstrap.ps1" -Auto -Brain none *> $null
+    $rerunOk = Test-Path "$tmp\.ai\.bootstrapped"
     Pop-Location
-    Assert "normal commit succeeds (hook spawns)" $normalOk
-    Assert "hook blocks data/raw commit"          $blocked
+    $postHook = "$tmp\.git\hooks\post-commit"
+    $pushCount = if (Test-Path $postHook) { @(Select-String -Path $postHook -Pattern "LiteRealm auto-push").Count } else { 0 }
+    $postBytes = if (Test-Path $postHook) { [IO.File]::ReadAllBytes($postHook) } else { @() }
+    $noBom = ($postBytes.Count -gt 2) -and -not ($postBytes[0] -eq 0xEF -and $postBytes[1] -eq 0xBB)
+    Assert "normal commit succeeds (hook spawns)"   $normalOk
+    Assert "hook allows adding a new data/raw file" $addOk
+    Assert "hook blocks modifying data/raw"         $blocked
+    Assert "bootstrap re-run succeeds"              $rerunOk
+    Assert "auto-push hook installed exactly once"  ($pushCount -eq 1)
+    Assert "post-commit hook has no BOM"            $noBom
 }
 finally {
     Remove-Item -Recurse -Force $tmp -ErrorAction SilentlyContinue
