@@ -5,4 +5,4 @@ Svaki redak odgovara jednoj mapi u `data/raw/` i povezanim obrađenim podacima u
 
 | ID | Datum & Vrijeme | Tip | Naziv i opis | Sirovi podaci (`data/raw/`) | Obrađeni podaci (`data/processed/`) | Poglavlje / Slika | Status |
 |---|---|---|---|---|---|---|---|
-| `RUN-EXAMPLE` | 2026-08-20 12:00 | EXP | Primjer mjerenja odziva | `2026-08-20_120000_exp_primjer` | `2026-08-20_121500_proc_primjer` | Poglavlje 4 / Slika 4.1 | 🟢 Valid |
+| `RUN-EXAMPLE` | 2026-08-20 12:00 | EXP | Primjer mjerenja odziva | `2026-08-20_120000_exp_primjer` | `exp_primjer_20082026_121500` | Poglavlje 4 / Slika 4.1 | 🟢 Valid |
