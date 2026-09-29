@@ -53,3 +53,12 @@ TestRealm/
 
 # Claude Code git worktrees — runtime, never tracked
 .claude/worktrees/
+
+# data_fetcher staging area: binaries stay local until promoted to data/sources/;
+# the catalog (STAGING_CATALOG.md) and manifest.yaml stay tracked for review.
+data/staging/**/*.pdf
+data/staging/**/*.docx
+data/staging/**/*.pptx
+data/staging/**/*.xlsx
+data/staging/**/*.html
+data/staging/**/*.zip
