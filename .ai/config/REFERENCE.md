@@ -16,9 +16,11 @@ Ovo je workspace za pisanje seminara, zadaća i akademskih radova uz pomoć AI a
 | `docs/code/` | Snippeti koda za ispis u dokumentu | Paketi poput `minted` ili `listings` |
 | `src/` | Programski kod (`.py`, `.cpp`, `.js`…) ako zadatak to zahtijeva | |
 | `dist/` | Konačne verzije za predaju. **Obavezno u podfoldere po verziji**: `dist/v1.0/`, `dist/v1.1/` itd. | PDF-ovi su gitignorirani |
-| `data/raw/` | Sirovi ulazni podaci. **READ-ONLY** — nikad se ne mjenjaju | Git hook blokira promjene |
+| `data/raw/` | Sirovi ulazni podaci. **APPEND-ONLY** — novi fajlovi da, postojeći se nikad ne mijenjaju | Git hook blokira izmjenu/brisanje |
 | `data/processed/` | Obrađeni podaci. Sve u subfolderima oblika `izvor_ddmmyyyy_hhmmss` | |
+| `data/staging/` | Izvori koje je `data_fetcher` preuzeo, čekaju pregled korisnika | Binarni gitignorirani; `STAGING_CATALOG.md` i `manifest.yaml` praćeni |
 | `data/sources/` | PDF literatura, članci, prezentacije za RAG bazu | Praćeni putem Git LFS |
+| `data/*.md` | `SOURCES_LOG.md`, `EXPERIMENTS_LOG.md`, `DATA_DICTIONARY.md` | Logovi izvora i mjerenja |
 | `.ai/` | Interne konfiguracije, skripte, RAG baza projekta | Ne mijenjati bez razloga |
 
 ## Agent Routing
@@ -37,6 +39,8 @@ Svaki agent ima jasno definirano područje odgovornosti:
 | `latex_surgeon` | Popravak LaTeX grešaka | Kompilacija pada, `.log` sadrži greške |
 | `qa_reviewer` | Pregled i kritika napisanog | Sekcija/poglavlje gotovo, prije predaje |
 | `rag_indexer` | Ažuriranje RAG baze | Novi PDF-ovi dodani u `data/sources/` |
+| `data_engineer` | Mjerenja, simulacije, obrada podataka, grafovi i tablice | "novo mjerenje", "obradi podatke", "kreiraj graf" |
+| `defense_simulator` | Simulacija obrane pred komisijom → `docs/DEFENSE_PREP.md` | "simuliraj obranu", "ispitaj me" |
 
 **Pipeline redoslijed**: `latex_architect` → fetch → write → review → fix → index
 
@@ -59,9 +63,10 @@ Svaki agent ima jasno definirano područje odgovornosti:
 
 ## data/raw/ — Read-Only Pravilo
 
-`data/raw/` sadržava izvorne, nepromijenjene podatke. **Nikad se ne mjenjaju.**
+`data/raw/` sadržava izvorne, nepromijenjene podatke. **Nikad se ne mijenjaju** (append-only).
 
-- Git pre-commit hook (instaliran via bootstrap) blokira commitanje promjena u `data/raw/`.
+- Git pre-commit hook (instaliran via bootstrap) dopušta dodavanje novih fajlova, a blokira
+  izmjenu, brisanje i preimenovanje postojećih.
 - Agenti smiju **čitati** iz `data/raw/` ali ne i pisati.
 - Obrađene verzije idu u `data/processed/izvor_ddmmyyyy_hhmmss/`.
 
@@ -75,8 +80,10 @@ Svaki agent ima jasno definirano područje odgovornosti:
 ## RAG — Citiranje iz izvora
 
 RAG je **uvijek dostupan** kroz AgentBrain (`~/.agentbrain`) — nema toggle opcije.
-Embeddings koriste Gemini ako je `GEMINI_API_KEY` postavljen u `.env`, inače lokalni
-`sentence-transformers`. Agent može pretraživati korisnikove PDF izvore:
+Embeddings: lokalni Ollama (`OLLAMA_EMBED_MODEL`), zatim Gemini (`GEMINI_API_KEY`), inače
+`sentence-transformers`; `RAG_STRICT_EMBED=1` zabranjuje tihu zamjenu modela. Spremište: Qdrant
+ako je `QDRANT_URL` postavljen, inače lokalni LanceDB (vidi `.env.example`). Agent može
+pretraživati korisnikove PDF izvore:
 
 Koristi `rag` wrapper (`.\.ai\scripts\helpers\rag.ps1` na Windowsu, `./.ai/scripts/helpers/rag.sh` na bashu) — razrješava putanju do braina i izbjegava `~` koji se u PowerShellu ne razvija:
 
@@ -84,11 +91,23 @@ Koristi `rag` wrapper (`.\.ai\scripts\helpers\rag.ps1` na Windowsu, `./.ai/scrip
 2. **Pretraga**: `rag query "pitanje" --scope both` — vraća relevantne odlomke s izvorom i stranicom.
 3. **Citiranje**: Koristi dobivene reference za precizno citiranje u seminaru (`\cite{key}`).
 4. **BibTeX**: `rag cite --doi "10.xxxx/yyyy"`
+5. **Inkrementalno**: `rag sync` — indeksira samo nove/promijenjene izvore.
+6. **Klasifikacija**: `rag classify <pdf>` — predlaže kategoriju (`data/staging/<category>/`).
 
 **Lokacija baze**: Vektorska baza je regenerabilan artefakt u `.ai/rag/db/`. LanceDB ne može
 commitati na FAT/exFAT diskovima, pa se na takvim volumenima baza automatski premješta u
 `%LOCALAPPDATA%\AgentBrain\rag\<projekt>\db` (ingest ispiše točnu putanju). PDF izvori ostaju u
 `data/sources/`. Override lokacije: postavi `RAG_DB_DIR`.
+
+## Ostali helperi (`.ai/scripts/helpers/`, `.ps1` i `.sh`)
+
+| Helper | Komande | Što radi |
+|---|---|---|
+| `experiment` | `new --type exp\|sim\|bench\|acq --name <slug> --desc "..."`, `process --raw <dir> --script <py>`, `list`, `audit` | Mape mjerenja u `data/raw/`, provenance u `data/processed/`, `data/EXPERIMENTS_LOG.md` |
+| `style` | `check <tex>`, `humanize <tex> [--in-place]`, `learn <tex>` | Human Style Score (cilj > 75), anti-AI klišeji, profil autora `~/.agentbrain/style/` |
+| `thesis` | `status`, `audit` | Pregled stanja rada: poglavlja, citati, TODO-i |
+| `promote-sources` | vidi Citiranje | `data/staging/` → `data/sources/` |
+| `checkpoint` | `[--ai] "type: opis"` | Commit svega; pravilo 1.1 |
 
 ## Global Brain
 
@@ -126,8 +145,10 @@ Ovaj projekt koristi `AgentBrain` (`~/.agentbrain`) kao "mozak":
    ključ; `rag query` onda iz `source_file` ispiše točan `\cite[str.~N]{key}` koji writer
    koristi (parafraza + citat po tvrdnji). Writer **ne izmišlja ključ** — nema ga u outputu
    query-ja → izvor nije spreman, traži `data_fetcher`.
-4. **Praćenje**: Svako preuzimanje logirati u `data/SOURCES_LOG.md`:
-   - `[Datum Vrijeme] - [URL] - [Lokalna putanja] - [Kratki opis]`
+4. **Staging → sources**: `data_fetcher` sprema samo u `data/staging/<category>/` uz
+   `STAGING_CATALOG.md`. Korisnik pregleda i promovira:
+   `promote-sources.ps1 -Category <cat>` (bash: `promote-sources.sh <cat>`, `--ingest` odmah indeksira).
+   Promocija upisuje red u `data/SOURCES_LOG.md`; tek nakon nje ide `rag cite --doi ... --file <pdf>`.
 5. **QA provjera**: `qa_reviewer` flagira kao CRITICAL ako `data/sources/` je prazan
    a `references.bib` ima stavke.
 
