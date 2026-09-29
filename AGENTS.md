@@ -8,10 +8,22 @@
 
 - Nakon **SVAKE logičke cjeline** (poglavlje napisano, bug popravljen, izvori preuzeti):
   odmah `git add` + `git commit`. **Ne čekaj kraj zadatka i ne čekaj korisnika.**
-- Format poruke: Conventional Commits + prefiks `🤖 [AI]` — npr. `feat: 🤖 [AI] add uvod chapter`.
-- Najlakše jednim pozivom: `.\.ai\scripts\helpers\checkpoint.ps1 "feat: opis"` (bash: `checkpoint.sh`).
+- Format poruke: Conventional Commits — npr. `feat: add uvod chapter` (AI oznaka: pravilo 1.1).
+- Najlakše jednim pozivom: `.\.ai\scripts\helpers\checkpoint.ps1 [-Ai] "feat: opis"` (bash: `checkpoint.sh [--ai]`).
 - Male prepravke → izravno na `main`. Veće strukturne promjene → grana `ai/<feature>` + PR.
+- **Push odmah nakon commita** (bootstrap instalira auto-push `post-commit` hook) — lokalni
+  commit je jedan kvar diska od gubitka.
 - **Samoprovjera prije završetka odgovora**: `git status --porcelain` mora biti prazan.
+
+### 1.1. Oznaka `🤖 [AI]`
+
+Oznaka znači **da je AI agent napravio posao u tom commitu**.
+
+- Agent je napravio posao → `feat: 🤖 [AI] opis` + `Co-Authored-By` trailer (helper: `-Ai` / `--ai`).
+- Korisnik je napravio posao, sam ili uz AI kao pomagalo → `feat: opis`, **bez** oznake i **bez**
+  trailera. Ako je korisnik dao smjer i odluku, a ti si samo proveo njegovu izmjenu, commit je njegov.
+- Git povijest **je** zapis korištenja AI-ja (važno ako fakultet/kolegij propisuje pravila) —
+  oznaka mora biti točna.
 
 ## 2. Read-only podaci
 

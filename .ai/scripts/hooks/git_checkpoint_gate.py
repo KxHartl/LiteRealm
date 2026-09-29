@@ -33,11 +33,17 @@ if dirty:
     print(json.dumps({
         "decision": "block",
         "reason": (
-            f"LiteRealm rule 1 (PROAKTIVNI GIT): {n} uncommitted change(s) in the "
-            "working tree. Commit each logical unit now — conventional commit with "
-            "the '\U0001F916 [AI]' prefix (helper: .ai/scripts/helpers/checkpoint.ps1 "
-            "or checkpoint.sh). Unfinished work: commit as 'wip: ...'. Changes that "
-            "are NOT yours (user's own edits): leave them and tell the user instead."
+            f"LiteRealm rule 1 (PROAKTIVNI GIT): {n} uncommitted change(s) in the working "
+            "tree. Commit each logical unit now as a conventional commit "
+            "(helper: .ai/scripts/helpers/checkpoint.ps1 or checkpoint.sh).\n"
+            "AUTHORSHIP (AGENTS.md rule 1.1): the '\U0001F916 [AI]' prefix "
+            "means an AI agent did the work in that commit; add the Co-Authored-By "
+            "trailer with it. If the user did the work, or gave the direction and "
+            "the decision while you carried it out, the commit is theirs: no marker, "
+            "no trailer. The git history IS the record of AI use, "
+            "so the marker must be accurate.\n"
+            "Unfinished work: commit as 'wip: ...'. Changes that are NOT yours "
+            "(user's own edits): leave them and tell the user instead."
         ),
     }))
 

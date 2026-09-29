@@ -100,10 +100,12 @@ Ovaj projekt koristi `AgentBrain` (`~/.agentbrain`) kao "mozak":
 
 ## Git & Kontrola Verzija
 
-1. **AI Oznake**: Prefiks `🤖 [AI]` u naslovu commita.
+1. **AI Oznake**: Prefiks `🤖 [AI]` u naslovu commita samo kad je agent napravio posao
+   (AGENTS.md pravilo 1.1).
 2. **Inkrementalni Commits**: Commitaj svaku logičku cjelinu odmah. Helper:
-   `.\.ai\scripts\helpers\checkpoint.ps1 "feat: opis"` (ili `checkpoint.sh`) radi
-   `add -A` + commit i sam dodaje `🤖 [AI]` prefiks ako nedostaje.
+   `.\.ai\scripts\helpers\checkpoint.ps1 [-Ai] "feat: opis"` (ili `checkpoint.sh [--ai]`) radi
+   `add -A` + commit; `-Ai`/`--ai` dodaje `🤖 [AI]` prefiks i `Co-Authored-By` trailer, a bez
+   zastavice odbija poruku koja sadrži `[AI]`. `post-commit` hook odmah pusha granu.
 3. **Strategija Grananja**:
    - Manje prepravke i pisanje teksta: radi izravno na `main`.
    - Veće strukturne promjene: kreiraj granu `ai/ime-featurea`.
@@ -133,4 +135,4 @@ Ovaj projekt koristi `AgentBrain` (`~/.agentbrain`) kao "mozak":
 
 - **Chat**: Hrvatski jezik.
 - **Kod, komentari, README i commit poruke**: Engleski jezik.
-- **Commit format**: Conventional Commits uz `🤖 [AI]`.
+- **Commit format**: Conventional Commits; `🤖 [AI]` prema AGENTS.md pravilu 1.1.
