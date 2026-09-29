@@ -74,8 +74,9 @@ if ($Name) {
     if ((Test-Path $stateFile) -and (Get-Content $stateFile -Raw) -match '_TBD_') {
         (Get-Content $stateFile -Raw) -replace '_TBD_', $Name | Set-Content $stateFile -NoNewline
     }
-    if ((Test-Path $yamlFile) -and (Get-Content $yamlFile -Raw) -match '"TBD"') {
-        (Get-Content $yamlFile -Raw) -replace '"TBD"', ('"' + $Name + '"') | Set-Content $yamlFile -NoNewline
+    # Only the name line: other fields may legitimately hold "TBD" placeholders.
+    if ((Test-Path $yamlFile) -and (Get-Content $yamlFile -Raw) -match '(?m)^name:\s*"TBD"') {
+        (Get-Content $yamlFile -Raw) -replace '(?m)^name:\s*"TBD"', ('name: "' + $Name + '"') | Set-Content $yamlFile -NoNewline
     }
 
     Write-Host "  Name '$Name' written to config files." -ForegroundColor Green

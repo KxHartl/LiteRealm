@@ -70,8 +70,9 @@ if [[ -n "$NAME" ]]; then
     if [[ -f "$state_file" ]] && grep -q "_TBD_" "$state_file"; then
         sed -i.bak "s/_TBD_/$NAME/g" "$state_file" && rm -f "$state_file.bak"
     fi
-    if [[ -f "$yaml_file" ]] && grep -q '"TBD"' "$yaml_file"; then
-        sed -i.bak "s/\"TBD\"/\"$NAME\"/g" "$yaml_file" && rm -f "$yaml_file.bak"
+    # Only the name line: other fields may legitimately hold "TBD" placeholders.
+    if [[ -f "$yaml_file" ]] && grep -q '^name: *"TBD"' "$yaml_file"; then
+        sed -i.bak "s/^name: *\"TBD\"/name: \"$NAME\"/" "$yaml_file" && rm -f "$yaml_file.bak"
     fi
 
     echo "  Name '$NAME' written to config files."
