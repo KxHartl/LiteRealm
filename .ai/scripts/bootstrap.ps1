@@ -74,8 +74,9 @@ if ($Name) {
     if ((Test-Path $stateFile) -and (Get-Content $stateFile -Raw) -match '_TBD_') {
         (Get-Content $stateFile -Raw) -replace '_TBD_', $Name | Set-Content $stateFile -NoNewline
     }
-    if ((Test-Path $yamlFile) -and (Get-Content $yamlFile -Raw) -match '"TBD"') {
-        (Get-Content $yamlFile -Raw) -replace '"TBD"', ('"' + $Name + '"') | Set-Content $yamlFile -NoNewline
+    # Only the name line: other fields may legitimately hold "TBD" placeholders.
+    if ((Test-Path $yamlFile) -and (Get-Content $yamlFile -Raw) -match '(?m)^name:\s*"TBD"') {
+        (Get-Content $yamlFile -Raw) -replace '(?m)^name:\s*"TBD"', ('name: "' + $Name + '"') | Set-Content $yamlFile -NoNewline
     }
 
     Write-Host "  Name '$Name' written to config files." -ForegroundColor Green
@@ -264,8 +265,8 @@ if ($uvAvailable) {
     }
 }
 
-# --- 6. Git setup: pre-commit hook + Git LFS ---
-Write-Host "[6/7] Git setup (hooks + LFS)..." -ForegroundColor Yellow
+# --- 6. Git setup: pre-commit hook + Git LFS + auto-push ---
+Write-Host "[6/7] Git setup (hooks + LFS + auto-push)..." -ForegroundColor Yellow
 
 $insideRepo = $false
 try {
@@ -277,43 +278,78 @@ try {
 
 $hookDir = Join-Path $root ".git\hooks"
 $preCommitHook = Join-Path $hookDir "pre-commit"
+$postCommitHook = Join-Path $hookDir "post-commit"
+# Hooks must be LF + NO BOM: Windows PowerShell 5.1 's "-Encoding utf8" prepends a BOM,
+# which breaks the shebang ("cannot spawn .git/hooks/pre-commit").
+$utf8NoBom = New-Object System.Text.UTF8Encoding $false
 
 $hookContent = @'
 #!/bin/sh
-# LiteRealm: block changes to data/raw/ - it is read-only source data.
-if git diff --cached --name-only | grep -q "^data/raw/"; then
-    echo "ERROR: data/raw/ is read-only. Move processed files to data/processed/." >&2
+# LiteRealm rule 2: data/raw/ is append-only source data. New files may be added;
+# existing ones must never be modified, deleted or renamed.
+touched=$(git diff --cached --name-only --diff-filter=MDRT -- data/raw/ | grep -v '^data/raw/\.gitkeep$')
+if [ -n "$touched" ]; then
+    echo "ERROR: data/raw/ is read-only. These paths are modified/deleted/renamed:" >&2
+    echo "$touched" | sed 's/^/  /' >&2
+    echo "Write derived files to data/processed/<source_ddmmyyyy_hhmmss>/ instead." >&2
     exit 1
 fi
 '@
 
+$autoPush = @'
+
+# LiteRealm auto-push: push every commit immediately (no-op without an origin remote).
+branch=$(git symbolic-ref --short -q HEAD) || exit 0
+git remote get-url origin >/dev/null 2>&1 || exit 0
+git push -q origin "$branch" >/dev/null 2>&1 &
+'@
+
 if (Test-Path $hookDir) {
-    if (-not (Test-Path $preCommitHook)) {
-        # Write LF + NO BOM: Windows PowerShell 5.1 's "-Encoding utf8" prepends a BOM,
-        # which breaks the shebang ("cannot spawn .git/hooks/pre-commit").
-        $hookText = $hookContent -replace "`r`n", "`n"
-        [System.IO.File]::WriteAllText($preCommitHook, $hookText, (New-Object System.Text.UTF8Encoding $false))
-        Write-Host "  pre-commit hook installed (data/raw/ protection)." -ForegroundColor Green
+    # Install, or upgrade the older LiteRealm hook that also blocked adding new raw files.
+    $existing = if (Test-Path $preCommitHook) { Get-Content $preCommitHook -Raw } else { $null }
+    if ((-not $existing) -or ($existing -match 'LiteRealm' -and $existing -notmatch 'diff-filter')) {
+        [System.IO.File]::WriteAllText($preCommitHook, ($hookContent -replace "`r`n", "`n"), $utf8NoBom)
+        Write-Host "  pre-commit hook installed (data/raw/ append-only)." -ForegroundColor Green
     } else {
         Write-Host "  pre-commit hook already exists, skipping." -ForegroundColor Gray
     }
 } else {
-    Write-Host "  Not a git repo (no .git/hooks) - skipping pre-commit hook." -ForegroundColor Gray
+    Write-Host "  Not a git repo (no .git/hooks) - skipping hooks." -ForegroundColor Gray
 }
 
 git lfs version *> $null
 if ($LASTEXITCODE -eq 0) {
     if ($insideRepo) {
         Push-Location $root
+        # Exits 2 once a hook carries more than the LFS lines (the auto-push post-commit
+        # below), which is the expected state on a re-run, not a failure.
         git lfs install --local *> $null
+        $lfsExit = $LASTEXITCODE
         Pop-Location
-        Write-Host "  Git LFS installed (data/sources/ large files tracked)." -ForegroundColor Green
+        if ($lfsExit -eq 0) {
+            Write-Host "  Git LFS installed (data/sources/ large files tracked)." -ForegroundColor Green
+        } else {
+            Write-Host "  Git LFS hooks already present and extended (auto-push); left as is." -ForegroundColor Gray
+        }
     } else {
         Write-Host "  Git LFS present but not inside a repo - skipping install." -ForegroundColor Gray
     }
 } else {
     Write-Host "  WARNING: git-lfs not found. Install it (https://git-lfs.com) so PDFs in" -ForegroundColor Yellow
     Write-Host "           data/sources/ are tracked via LFS, not committed as large blobs." -ForegroundColor Yellow
+}
+
+# Auto-push after every commit: a local-only commit is one disk failure from gone.
+# Appended after the LFS post-commit lines (if any), so both run.
+if (Test-Path $hookDir) {
+    $post = if (Test-Path $postCommitHook) { Get-Content $postCommitHook -Raw } else { "#!/bin/sh`n" }
+    if ($post -match 'LiteRealm auto-push') {
+        Write-Host "  auto-push post-commit hook already present." -ForegroundColor Gray
+    } else {
+        $post = ($post.TrimEnd() + "`n" + $autoPush) -replace "`r`n", "`n"
+        [System.IO.File]::WriteAllText($postCommitHook, $post, $utf8NoBom)
+        Write-Host "  auto-push post-commit hook installed." -ForegroundColor Green
+    }
 }
 
 # --- 7. Check LaTeX (Tectonic) ---

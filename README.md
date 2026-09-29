@@ -71,7 +71,8 @@ Run once after cloning. It is **idempotent** — safe to re-run any time.
 - ✅ Copies `.env` from `.env.example`
 - ✅ Clones **AgentBrain** to `~/.agentbrain` if it isn't there yet
 - ✅ Creates a minimal project `.venv` (just `python-dotenv`); on first run, also builds the shared RAG env in `~/.agentbrain/.venv` (one-time, ~500 MB — docling + models)
-- ✅ Installs a Git pre-commit hook that protects `data/raw/` from edits
+- ✅ Installs a Git pre-commit hook that keeps `data/raw/` append-only (new files yes, edits no)
+- ✅ Installs an auto-push `post-commit` hook — every commit reaches GitHub at once, so a dead disk never takes unpushed work with it
 - ✅ Enables Git LFS for `data/sources/` and checks your LaTeX compiler
 
 > No internet? Bootstrap falls back to a minimal template in `.ai/fallback/` so you can still compile.
@@ -80,7 +81,7 @@ Run once after cloning. It is **idempotent** — safe to re-run any time.
 
 ## 🤖 The AI agents
 
-Six specialists live in `~/.agentbrain/agents/`. You don't call them by name — you describe what
+Eight specialists live in `~/.agentbrain/agents/`. You don't call them by name — you describe what
 you want and the right one picks it up.
 
 | Agent | Role | Say something like… |
@@ -91,6 +92,8 @@ you want and the right one picks it up.
 | `qa_reviewer` | Reviews content → `docs/REVIEW.md` | *"pregledaj"*, *"review chapter"* |
 | `latex_surgeon` | Fixes LaTeX compile errors | *(auto, when a build fails)* |
 | `rag_indexer` | Maintains the RAG vector database | *(auto, after you add PDFs)* |
+| `data_engineer` | Experiments, data processing, figures & tables | *"novo mjerenje"*, *"obradi podatke"* |
+| `defense_simulator` | Drills you for the defense → `docs/DEFENSE_PREP.md` | *"simuliraj obranu"*, *"ispitaj me"* |
 
 ```
 latex_architect → data_fetcher → writer → qa_reviewer → latex_surgeon → rag_indexer
@@ -98,7 +101,9 @@ latex_architect → data_fetcher → writer → qa_reviewer → latex_surgeon �
 ```
 
 **Citations are grounded:** the `writer` only cites papers whose PDF actually exists in
-`data/sources/`. No invented references.
+`data/sources/`. No invented references. `data_fetcher` only *stages* downloads in
+`data/staging/<category>/` with a `STAGING_CATALOG.md`; you review them and promote the keepers
+with `promote-sources.ps1 -Category <cat>` (bash: `promote-sources.sh <cat> [--ingest]`).
 
 ---
 
@@ -111,9 +116,11 @@ latex_architect → data_fetcher → writer → qa_reviewer → latex_surgeon �
 | `docs/figures/` · `tables/` · `code/` | Images, complex tables, code listings | `\input{}`'d where needed |
 | `src/` | Source code, scripts, algorithms | Optional — empty if your work needs no code |
 | `dist/` | Final hand-in builds | **Versioned**: `dist/v1.0/`, `dist/v1.1/` … (PDFs gitignored) |
-| `data/raw/` | Original input data | 🔒 **Read-only** — enforced by pre-commit hook |
+| `data/raw/` | Original input data | 🔒 **Append-only** — enforced by pre-commit hook |
 | `data/processed/` | Derived data | Subfolders `source_ddmmyyyy_hhmmss/` |
+| `data/staging/` | Downloads awaiting your review | Binaries gitignored until promoted |
 | `data/sources/` | Literature PDFs for RAG | Tracked via **Git LFS** |
+| `data/*.md` | Sources log, experiments log, data dictionary | Kept up to date by the agents |
 | `.ai/` | Project config, scripts, RAG database | Internal — `REFERENCE.md` holds the on-demand details |
 | `~/.agentbrain/` | Templates, agents, skills, RAG scripts | Shared across every project |
 
@@ -140,12 +147,25 @@ git add data/sources/paper.pdf; git commit -m "feat: add source"
 
 # 4. Generate BibTeX from a DOI
 .\.ai\scripts\helpers\rag.ps1 cite --doi "10.1109/TRO.2024.1234567"
+
+# 5. Later: index only new or changed sources
+.\.ai\scripts\helpers\rag.ps1 sync
 ```
 
 RAG is **always on** — no flag to enable, nothing to configure per-project. The first
 `ingest`/`query` builds the shared `~/.agentbrain/.venv` automatically if it isn't there
-yet (≈1.5 GB, one-time). Embeddings use Gemini if `GEMINI_API_KEY` is set in `.env`,
-otherwise local `sentence-transformers`. Either way it just works.
+yet (≈1.5 GB, one-time). Embeddings use local Ollama (`OLLAMA_EMBED_MODEL`) when set, then
+Gemini (`GEMINI_API_KEY`), otherwise local `sentence-transformers`; set `QDRANT_URL` to use a
+Qdrant server instead of the local LanceDB store. See `.env.example`.
+
+### Other helpers
+
+| Helper | What it does |
+|---|---|
+| `experiment new \| process \| list \| audit` | Traceable measurement/simulation runs → `data/EXPERIMENTS_LOG.md` |
+| `style check \| humanize \| learn <tex>` | Style linter (Human Style Score), anti-AI clichés, your author profile |
+| `thesis status \| audit` | One-screen progress report of the whole work |
+| `checkpoint [--ai] "type: msg"` | Commit everything; `--ai` marks agent-made commits |
 
 ---
 

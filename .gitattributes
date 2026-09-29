@@ -19,3 +19,8 @@ data/sources/*.xlsx filter=lfs diff=lfs merge=lfs -text
 data/raw/*.pdf filter=lfs diff=lfs merge=lfs -text
 data/raw/*.csv filter=lfs diff=lfs merge=lfs -text
 data/raw/*.zip filter=lfs diff=lfs merge=lfs -text
+# Nested source folders (data/sources/<category>/...)
+data/sources/**/*.pdf filter=lfs diff=lfs merge=lfs -text
+data/sources/**/*.docx filter=lfs diff=lfs merge=lfs -text
+data/sources/**/*.pptx filter=lfs diff=lfs merge=lfs -text
+data/sources/**/*.xlsx filter=lfs diff=lfs merge=lfs -text

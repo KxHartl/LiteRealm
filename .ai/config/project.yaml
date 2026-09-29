@@ -2,8 +2,8 @@ name: "TBD"
 type: "seminar"              # seminar | thesis | paper | homework
 latex_format: "fsb-seminar"  # fsb-seminar | fsb-thesis | fsb-paper
 brain_mode: "global"         # none | global
-# RAG is always available via AgentBrain (~/.agentbrain). Embeddings use Gemini
-# if GEMINI_API_KEY is set in .env, otherwise local sentence-transformers.
+# RAG is always available via AgentBrain (~/.agentbrain). Embeddings use local Ollama
+# (OLLAMA_EMBED_MODEL) when set, then Gemini (GEMINI_API_KEY), then sentence-transformers.
 
 # --- Metadata za naslovnicu (latex_architect popunjava main.tex) ---
 author_name: ""              # Ime i prezime studenta
@@ -12,6 +12,16 @@ seminar_title: ""            # Puni naslov seminara
 seminar_title_short: ""      # Skraćeni naslov za header (max ~50 znakova)
 professor_title: ""          # Titula (npr. "Prof. dr. sc.")
 professor_name: ""           # Ime i prezime profesora
+
+# --- Samo za type: thesis (fsb-thesis) ---
+thesis_title: ""             # Puni naslov rada (ako prazno: seminar_title)
+thesis_title_short: ""       # Skraćeni naslov za header (max ~50 znakova)
+mentors: ""                  # Opcijski, više mentora: "Prof. dr. sc. Ime Prezime \\ Dr. sc. Ime Prezime"
+acknowledgment: ""           # Zahvala
+keywords_hr: ""              # Ključne riječi, odvojene s ";"
+keywords_en: ""              # Key words, separated by ";"
+abstract_hr: ""              # Sažetak
+abstract_en: ""              # Abstract
 
 # --- Build & page limit ---
 max_pages: 12                # build skripta upozorava ako PDF premašuje N stranica
