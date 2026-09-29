@@ -233,8 +233,8 @@ fi
 
 set -e
 
-# --- 6. Git setup: pre-commit hook + Git LFS ---
-echo "[6/7] Git setup (hooks + LFS)..."
+# --- 6. Git setup: pre-commit hook + Git LFS + auto-push ---
+echo "[6/7] Git setup (hooks + LFS + auto-push)..."
 
 inside_repo=false
 if git -C "$root" rev-parse --is-inside-work-tree &>/dev/null; then
@@ -243,36 +243,66 @@ fi
 
 hook_dir="$root/.git/hooks"
 pre_commit_hook="$hook_dir/pre-commit"
+post_commit_hook="$hook_dir/post-commit"
 
 if [[ -d "$hook_dir" ]]; then
-    if [[ ! -f "$pre_commit_hook" ]]; then
+    # Install, or upgrade the older LiteRealm hook that also blocked adding new raw files.
+    if [[ ! -f "$pre_commit_hook" ]] || { grep -q "LiteRealm" "$pre_commit_hook" && ! grep -q "diff-filter" "$pre_commit_hook"; }; then
         cat > "$pre_commit_hook" << 'HOOK'
 #!/bin/sh
-# LiteRealm: block changes to data/raw/ — it is read-only source data.
-if git diff --cached --name-only | grep -q "^data/raw/"; then
-    echo "ERROR: data/raw/ is read-only. Move processed files to data/processed/." >&2
+# LiteRealm rule 2: data/raw/ is append-only source data. New files may be added;
+# existing ones must never be modified, deleted or renamed.
+touched=$(git diff --cached --name-only --diff-filter=MDRT -- data/raw/ | grep -v '^data/raw/\.gitkeep$')
+if [ -n "$touched" ]; then
+    echo "ERROR: data/raw/ is read-only. These paths are modified/deleted/renamed:" >&2
+    echo "$touched" | sed 's/^/  /' >&2
+    echo "Write derived files to data/processed/<source_ddmmyyyy_hhmmss>/ instead." >&2
     exit 1
 fi
 HOOK
         chmod +x "$pre_commit_hook"
-        echo "  pre-commit hook installed (data/raw/ protection)."
+        echo "  pre-commit hook installed (data/raw/ append-only)."
     else
         echo "  pre-commit hook already exists, skipping."
     fi
 else
-    echo "  Not a git repo (no .git/hooks) — skipping pre-commit hook."
+    echo "  Not a git repo (no .git/hooks) — skipping hooks."
 fi
 
 if command -v git-lfs &>/dev/null || git lfs version &>/dev/null; then
     if [[ "$inside_repo" == true ]]; then
-        git -C "$root" lfs install --local &>/dev/null
-        echo "  Git LFS installed (data/sources/ large files tracked)."
+        # Exits 2 once a hook carries more than the LFS lines (the auto-push post-commit
+        # below), which is the expected state on a re-run, not a failure.
+        if git -C "$root" lfs install --local &>/dev/null; then
+            echo "  Git LFS installed (data/sources/ large files tracked)."
+        else
+            echo "  Git LFS hooks already present and extended (auto-push); left as is."
+        fi
     else
         echo "  Git LFS present but not inside a repo — skipping install."
     fi
 else
     echo "  WARNING: git-lfs not found. Install it (https://git-lfs.com) so PDFs in"
     echo "           data/sources/ are tracked via LFS, not committed as large blobs."
+fi
+
+# Auto-push after every commit: a local-only commit is one disk failure from gone.
+# Appended after the LFS post-commit lines (if any), so both run.
+if [[ -d "$hook_dir" ]]; then
+    if [[ -f "$post_commit_hook" ]] && grep -q "LiteRealm auto-push" "$post_commit_hook"; then
+        echo "  auto-push post-commit hook already present."
+    else
+        [[ -f "$post_commit_hook" ]] || echo '#!/bin/sh' > "$post_commit_hook"
+        cat >> "$post_commit_hook" << 'HOOK'
+
+# LiteRealm auto-push: push every commit immediately (no-op without an origin remote).
+branch=$(git symbolic-ref --short -q HEAD) || exit 0
+git remote get-url origin >/dev/null 2>&1 || exit 0
+git push -q origin "$branch" >/dev/null 2>&1 &
+HOOK
+        chmod +x "$post_commit_hook"
+        echo "  auto-push post-commit hook installed."
+    fi
 fi
 
 # --- 7. Check LaTeX (Tectonic) ---

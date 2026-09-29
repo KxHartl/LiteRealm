@@ -2,7 +2,7 @@
 
 ## `data/raw/`
 Original, untouched input data — reports, camera captures, downloaded tables, raw datasets.
-🔒 **Read-only: never modified by code.** A pre-commit hook blocks any commit that changes it.
+🔒 **Append-only: never modified by code.** New files may be added; a pre-commit hook blocks any commit that modifies, deletes or renames an existing one.
 
 ## `data/processed/`
 Processed data, charts and models.
