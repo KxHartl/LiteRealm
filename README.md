@@ -21,9 +21,17 @@ lives once on your machine in **[AgentBrain](https://github.com/KxHartl/AgentBra
    └─────────────────────────┘         └──────────────────────────────┘
 ```
 
+## Status
+
+| | |
+| --- | --- |
+| Version | **2.2.0**, GitHub template repository |
+| Generation | Second (May to September 2026), after [AgentRealm](https://github.com/KxHartl/AgentRealm) |
+| Current | For new workspaces of any kind, use [WorkRealm](https://github.com/KxHartl/WorkRealm). LiteRealm stays the quickest start for a LaTeX seminar or thesis |
+
 ---
 
-## 🚀 Quick Start
+## Quick Start
 
 ### Option A — GitHub Codespaces (zero setup)
 
@@ -62,7 +70,7 @@ prove it works, and hands off to the **`writer`** agent. You write prose; the ag
 
 ---
 
-## 🧠 What bootstrap does
+## What bootstrap does
 
 Run once after cloning. It is **idempotent** — safe to re-run any time.
 
@@ -79,7 +87,7 @@ Run once after cloning. It is **idempotent** — safe to re-run any time.
 
 ---
 
-## 🤖 The AI agents
+## The AI agents
 
 Eight specialists live in `~/.agentbrain/agents/`. You don't call them by name — you describe what
 you want and the right one picks it up.
@@ -107,7 +115,7 @@ with `promote-sources.ps1 -Category <cat>` (bash: `promote-sources.sh <cat> [--i
 
 ---
 
-## 📁 Project layout
+## Project layout
 
 | Path | What lives here | Rule |
 |---|---|---|
@@ -126,7 +134,7 @@ with `promote-sources.ps1 -Category <cat>` (bash: `promote-sources.sh <cat> [--i
 
 ---
 
-## 📚 RAG — chat with your literature
+## RAG — chat with your literature
 
 Drop PDFs into `data/sources/` and your agents can quote them with page-accurate citations.
 PDFs are parsed with **Docling** (understands tables, multi-column layouts, figures) and stored
@@ -169,7 +177,7 @@ Qdrant server instead of the local LanceDB store. See `.env.example`.
 
 ---
 
-## 🛠️ Building the PDF
+## Building the PDF
 
 ```powershell
 .\.ai\scripts\helpers\build-docs.ps1                 # Windows
@@ -189,7 +197,7 @@ and uploads the PDF as a CI artifact.
 
 ---
 
-## ⚙️ Configuration
+## Configuration
 
 Two files drive everything. The init workflow fills in the project name; you fill in the rest.
 
@@ -209,7 +217,7 @@ Also choose your `latex_format` (`fsb-seminar` · `fsb-thesis` · `fsb-paper` ·
 
 ---
 
-## 📦 Requirements
+## Requirements
 
 | Tool | Why | Install |
 |---|---|---|
@@ -223,7 +231,7 @@ Also choose your `latex_format` (`fsb-seminar` · `fsb-thesis` · `fsb-paper` ·
 
 ---
 
-## ❓ FAQ
+## FAQ
 
 **Do I need to install AgentBrain manually?** No — bootstrap clones it to `~/.agentbrain` the first time.
 
